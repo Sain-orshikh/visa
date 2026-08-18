@@ -3,7 +3,9 @@ import { getCurrentUser } from "@/lib/auth"
 import { getApplication, getDocument, updateDocument } from "@/lib/store"
 import { deleteFromCloudinary, isCloudinaryConfigured, uploadBuffer } from "@/lib/cloudinary"
 
-const MAX_BYTES = 10 * 1024 * 1024 // 10MB
+// Vercel serverless functions hard-cap the request body at 4.5MB regardless
+// of app config, so this stays under that with room for multipart overhead.
+const MAX_BYTES = 4 * 1024 * 1024 // 4MB
 const ALLOWED = ["application/pdf", "image/jpeg", "image/png", "image/webp"]
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -35,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "No file provided." }, { status: 400 })
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File exceeds the 10MB limit." }, { status: 413 })
+    return NextResponse.json({ error: "File exceeds the 4MB limit." }, { status: 413 })
   }
   if (file.type && !ALLOWED.includes(file.type)) {
     return NextResponse.json({ error: "Unsupported file type. Use PDF, JPG, PNG, or WEBP." }, { status: 415 })
