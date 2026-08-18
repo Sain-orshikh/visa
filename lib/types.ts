@@ -23,6 +23,15 @@ export interface VisaApplication {
   createdAt: string
 }
 
+export interface VisaFile {
+  id: string
+  url: string
+  publicId: string
+  name: string
+  format: string
+  uploadedAt: string
+}
+
 export interface VisaDocument {
   id: string
   applicationId: string
@@ -31,11 +40,7 @@ export interface VisaDocument {
   category: string | null
   deadline: string | null
   status: DocumentStatus
-  fileUrl: string | null
-  filePublicId: string | null
-  fileName: string | null
-  fileFormat: string | null
-  uploadedAt: string | null
+  files: VisaFile[]
   createdAt: string
 }
 

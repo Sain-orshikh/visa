@@ -67,12 +67,16 @@ export const api = {
     send<{ document: VisaDocument }>(`/api/documents/${id}`, "PATCH", input),
   deleteDocument: (id: string) => send<{ ok: true }>(`/api/documents/${id}`, "DELETE"),
 
-  uploadFile: async (documentId: string, file: File) => {
+  uploadFile: async (documentId: string, files: File | File[]) => {
     const formData = new FormData()
-    formData.append("file", file)
+    for (const file of Array.isArray(files) ? files : [files]) {
+      formData.append("file", file)
+    }
     const res = await fetch(`/api/documents/${documentId}/upload`, { method: "POST", body: formData })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error ?? "Upload failed")
     return data as { document: VisaDocument }
   },
+  deleteFile: (documentId: string, fileId: string) =>
+    send<{ document: VisaDocument }>(`/api/documents/${documentId}/files/${fileId}`, "DELETE"),
 }

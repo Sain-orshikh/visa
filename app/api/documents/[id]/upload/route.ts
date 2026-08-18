@@ -1,7 +1,9 @@
+import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { getApplication, getDocument, updateDocument } from "@/lib/store"
-import { deleteFromCloudinary, isCloudinaryConfigured, uploadBuffer } from "@/lib/cloudinary"
+import { addDocumentFiles, getApplication, getDocument } from "@/lib/store"
+import { isCloudinaryConfigured, uploadBuffer } from "@/lib/cloudinary"
+import type { VisaFile } from "@/lib/types"
 
 // Vercel serverless functions hard-cap the request body at 4.5MB regardless
 // of app config, so this stays under that with room for multipart overhead.
@@ -32,39 +34,44 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Expected multipart form data." }, { status: 400 })
   }
 
-  const file = formData.get("file")
-  if (!(file instanceof File)) {
+  const files = formData.getAll("file").filter((f): f is File => f instanceof File)
+  if (files.length === 0) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 })
   }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File exceeds the 4MB limit." }, { status: 413 })
+  for (const file of files) {
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: `"${file.name}" exceeds the 4MB limit.` }, { status: 413 })
+    }
+    if (file.type && !ALLOWED.includes(file.type)) {
+      return NextResponse.json({ error: "Unsupported file type. Use PDF, JPG, PNG, or WEBP." }, { status: 415 })
+    }
   }
-  if (file.type && !ALLOWED.includes(file.type)) {
-    return NextResponse.json({ error: "Unsupported file type. Use PDF, JPG, PNG, or WEBP." }, { status: 415 })
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer())
 
   try {
-    // Remove a previously uploaded file before replacing it.
-    if (document.filePublicId) {
-      await deleteFromCloudinary(document.filePublicId)
+    const uploaded: VisaFile[] = []
+    for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const result = await uploadBuffer(buffer, file.name, `visa-tracker/${application.id}`)
+      uploaded.push({
+        id: randomUUID(),
+        url: result.url,
+        publicId: result.publicId,
+        name: result.originalFilename,
+        format: result.format,
+        uploadedAt: new Date().toISOString(),
+      })
     }
 
-    const result = await uploadBuffer(buffer, file.name, `visa-tracker/${application.id}`)
-
-    const updated = await updateDocument(id, {
-      status: "uploaded",
-      fileUrl: result.url,
-      filePublicId: result.publicId,
-      fileName: result.originalFilename,
-      fileFormat: result.format,
-      uploadedAt: new Date().toISOString(),
-    })
-
+    const updated = await addDocumentFiles(id, uploaded)
     return NextResponse.json({ document: updated })
   } catch (error) {
-    console.log("[v0] Cloudinary upload failed:", error instanceof Error ? error.message : error)
-    return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 })
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : ((error as { message?: string } | undefined)?.message ?? JSON.stringify(error))
+    console.log("[v0] Cloudinary upload failed:", message)
+    return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 })
   }
 }

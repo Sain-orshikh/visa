@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { api } from "@/lib/api"
 import type { VisaDocument } from "@/lib/types"
+import { FileViewerModal } from "@/components/file-viewer-modal"
 
 /* ---------------------------------------------------------------- urgency */
 
@@ -96,12 +97,12 @@ function OutstandingRow({ document, onChanged }: DocumentRowProps) {
   const deadline = urgencyOf(document.deadline)
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
     setError(null)
     setBusy(true)
     try {
-      await api.uploadFile(document.id, file)
+      await api.uploadFile(document.id, files)
       onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")
@@ -190,7 +191,7 @@ function OutstandingRow({ document, onChanged }: DocumentRowProps) {
           className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors disabled:opacity-60"
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-          {busy ? "Uploading…" : "Upload file"}
+          {busy ? "Uploading…" : "Upload files"}
         </button>
         <button
           onClick={handleDelete}
@@ -204,6 +205,7 @@ function OutstandingRow({ document, onChanged }: DocumentRowProps) {
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
           onChange={handleFile}
           className="hidden"
@@ -226,6 +228,12 @@ function Circle() {
 /** Completed work is dense and quiet — it shouldn't compete with what's left. */
 function OnFileRow({ document, onChanged }: DocumentRowProps) {
   const [busy, setBusy] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
+
+  const latestUpload = document.files.reduce<string | null>(
+    (latest, f) => (!latest || f.uploadedAt > latest ? f.uploadedAt : latest),
+    null,
+  )
 
   async function handleDelete() {
     setBusy(true)
@@ -238,36 +246,44 @@ function OnFileRow({ document, onChanged }: DocumentRowProps) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5">
-      <CircleCheck className="w-5 h-5 text-success flex-shrink-0" />
-      <span className="text-sm text-on-surface truncate flex-1 min-w-0">{document.name}</span>
-      {document.uploadedAt && (
-        <span className="font-mono text-[11px] text-on-surface-variant hidden sm:inline">
-          {new Date(document.uploadedAt).toLocaleDateString(undefined, {
-            day: "2-digit",
-            month: "short",
-          })}
-        </span>
+    <>
+      <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2.5">
+        <CircleCheck className="w-5 h-5 text-success shrink-0" />
+        <span className="text-sm text-on-surface truncate flex-1 min-w-0">{document.name}</span>
+        {document.files.length > 1 && (
+          <span className="font-mono text-[11px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">
+            {document.files.length} files
+          </span>
+        )}
+        {latestUpload && (
+          <span className="font-mono text-[11px] text-on-surface-variant hidden sm:inline">
+            {new Date(latestUpload).toLocaleDateString(undefined, {
+              day: "2-digit",
+              month: "short",
+            })}
+          </span>
+        )}
+        <button
+          onClick={() => setViewerOpen(true)}
+          className="px-2.5 py-1.5 text-primary text-xs font-semibold hover:bg-surface-container rounded-md transition-colors flex items-center gap-1.5"
+        >
+          <Eye className="w-4 h-4" />
+          <span className="hidden sm:inline">View</span>
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          title={`Remove ${document.name}`}
+          aria-label={`Remove ${document.name}`}
+          className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md transition-colors disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        </button>
+      </div>
+      {viewerOpen && (
+        <FileViewerModal document={document} onClose={() => setViewerOpen(false)} onChanged={onChanged} />
       )}
-      <a
-        href={document.fileUrl ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="px-2.5 py-1.5 text-primary text-xs font-semibold hover:bg-surface-container rounded-md transition-colors flex items-center gap-1.5"
-      >
-        <Eye className="w-4 h-4" />
-        <span className="hidden sm:inline">View</span>
-      </a>
-      <button
-        onClick={handleDelete}
-        disabled={busy}
-        title={`Remove ${document.name}`}
-        aria-label={`Remove ${document.name}`}
-        className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md transition-colors disabled:opacity-50"
-      >
-        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-      </button>
-    </div>
+    </>
   )
 }
 

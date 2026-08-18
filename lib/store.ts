@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto"
 import { getDb } from "./mongodb"
-import type { SupportCategory, SupportTicket, User, VisaApplication, VisaDocument, VisaType } from "./types"
+import type { SupportCategory, SupportTicket, User, VisaApplication, VisaDocument, VisaFile, VisaType } from "./types"
 
 /**
  * Data layer backed by MongoDB. Every document keeps its own `id` (a UUID)
@@ -79,9 +79,7 @@ export async function deleteUserCascade(id: string): Promise<{ filePublicIds: st
   const ownedDocs = appIds.length
     ? await (await documents()).find({ applicationId: { $in: appIds } }, NO_ID).toArray()
     : []
-  const filePublicIds = ownedDocs
-    .map((d) => d.filePublicId)
-    .filter((publicId): publicId is string => Boolean(publicId))
+  const filePublicIds = ownedDocs.flatMap((d) => normalizeDocument(d).files.map((f) => f.publicId))
 
   if (appIds.length) {
     await (await documents()).deleteMany({ applicationId: { $in: appIds } })
@@ -140,13 +138,43 @@ export async function deleteApplication(userId: string, id: string): Promise<boo
 
 /* -------------------------------- Documents ------------------------------- */
 
+/**
+ * Older documents were written before multi-file support and carry a single
+ * `fileUrl`/`filePublicId`/... set instead of a `files` array. Fold that
+ * legacy shape into `files` on read so nothing already uploaded is orphaned.
+ */
+function normalizeDocument(raw: VisaDocument): VisaDocument {
+  if (Array.isArray(raw.files)) return raw
+  const legacy = raw as unknown as {
+    fileUrl?: string | null
+    filePublicId?: string | null
+    fileName?: string | null
+    fileFormat?: string | null
+    uploadedAt?: string | null
+  }
+  const files: VisaFile[] = legacy.fileUrl
+    ? [
+        {
+          id: legacy.filePublicId ?? randomUUID(),
+          url: legacy.fileUrl,
+          publicId: legacy.filePublicId ?? "",
+          name: legacy.fileName ?? raw.name,
+          format: legacy.fileFormat ?? "",
+          uploadedAt: legacy.uploadedAt ?? raw.createdAt,
+        },
+      ]
+    : []
+  return { ...raw, files }
+}
+
 export async function listDocuments(applicationId: string): Promise<VisaDocument[]> {
-  return (await documents()).find({ applicationId }, NO_ID).sort({ createdAt: 1 }).toArray()
+  const docs = await (await documents()).find({ applicationId }, NO_ID).sort({ createdAt: 1 }).toArray()
+  return docs.map(normalizeDocument)
 }
 
 export async function getDocument(id: string): Promise<VisaDocument | undefined> {
   const doc = await (await documents()).findOne({ id }, NO_ID)
-  return doc ?? undefined
+  return doc ? normalizeDocument(doc) : undefined
 }
 
 export async function createDocument(input: {
@@ -164,11 +192,7 @@ export async function createDocument(input: {
     category: input.category ?? null,
     deadline: input.deadline ?? null,
     status: "pending",
-    fileUrl: null,
-    filePublicId: null,
-    fileName: null,
-    fileFormat: null,
-    uploadedAt: null,
+    files: [],
     createdAt: new Date().toISOString(),
   }
   await (await documents()).insertOne({ ...doc })
@@ -185,7 +209,32 @@ export async function updateDocument(
     { $set: safePatch },
     { returnDocument: "after", projection: { _id: 0 } },
   )
-  return result ?? undefined
+  return result ? normalizeDocument(result) : undefined
+}
+
+/** Appends newly uploaded files and marks the document as having files on record. */
+export async function addDocumentFiles(id: string, files: VisaFile[]): Promise<VisaDocument | undefined> {
+  const document = await getDocument(id)
+  if (!document) return undefined
+  const result = await (await documents()).findOneAndUpdate(
+    { id },
+    { $set: { files: [...document.files, ...files], status: "uploaded" } },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ? normalizeDocument(result) : undefined
+}
+
+/** Removes one file from a document, reverting to "pending" if none remain. */
+export async function removeDocumentFile(id: string, fileId: string): Promise<VisaDocument | undefined> {
+  const document = await getDocument(id)
+  if (!document) return undefined
+  const files = document.files.filter((f) => f.id !== fileId)
+  const result = await (await documents()).findOneAndUpdate(
+    { id },
+    { $set: { files, status: files.length > 0 ? "uploaded" : "pending" } },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ? normalizeDocument(result) : undefined
 }
 
 export async function deleteDocument(id: string): Promise<boolean> {

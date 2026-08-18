@@ -51,7 +51,10 @@ export async function uploadBuffer(buffer: Buffer, filename: string, folder = "v
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Upload failed"))
+          // The Cloudinary SDK rejects with a plain {message, http_code} object,
+          // not an Error instance, so wrap it to preserve the real reason.
+          const message = (error as { message?: string } | undefined)?.message ?? "Upload failed"
+          reject(new Error(message))
           return
         }
         resolve({

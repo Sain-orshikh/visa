@@ -41,8 +41,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status })
 
   const { document } = result
-  if (document.filePublicId && isCloudinaryConfigured()) {
-    await deleteFromCloudinary(document.filePublicId)
+  if (isCloudinaryConfigured()) {
+    await Promise.all(document.files.map((f) => deleteFromCloudinary(f.publicId)))
   }
 
   await deleteDocument(id)
