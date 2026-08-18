@@ -1,4 +1,4 @@
-import type { VisaApplication, VisaDocument, VisaType } from "./types"
+import type { PublicUser, SupportCategory, SupportTicket, VisaApplication, VisaDocument, VisaType } from "./types"
 
 export interface ApplicationSummary extends VisaApplication {
   totalDocuments: number
@@ -37,6 +37,16 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     send<{ user: { id: string; email: string; name: string } }>("/api/auth/login", "POST", input),
   logout: () => send<{ ok: true }>("/api/auth/logout", "POST"),
+
+  updateProfile: (input: { name?: string; email?: string }) =>
+    send<{ user: PublicUser }>("/api/auth/me", "PATCH", input),
+  changePassword: (input: { currentPassword: string; newPassword: string }) =>
+    send<{ ok: true }>("/api/auth/password", "POST", input),
+  deleteAccount: (input: { password: string }) =>
+    send<{ ok: true }>("/api/auth/me", "DELETE", input),
+
+  createSupportTicket: (input: { category: SupportCategory; subject: string; message: string }) =>
+    send<{ ticket: SupportTicket }>("/api/support", "POST", input),
 
   createApplication: (input: {
     name?: string

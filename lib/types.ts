@@ -39,6 +39,20 @@ export interface VisaDocument {
   createdAt: string
 }
 
+export type SupportCategory = "documents" | "account" | "billing" | "bug" | "other"
+
+export type SupportStatus = "open" | "closed"
+
+export interface SupportTicket {
+  id: string
+  userId: string
+  category: SupportCategory
+  subject: string
+  message: string
+  status: SupportStatus
+  createdAt: string
+}
+
 /** Shape returned to the client (never includes password hashes). */
 export interface PublicUser {
   id: string

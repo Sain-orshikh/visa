@@ -5,6 +5,8 @@ import Link from "next/link"
 import useSWR from "swr"
 import { CalendarDays, Check, Compass, Menu, Plus } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
+import { Logo } from "@/components/logo"
+import { ThemeToggleIcon } from "@/components/theme-toggle"
 import { DocumentChecklist } from "@/components/document-checklist"
 import { AddDocumentModal } from "@/components/add-document-modal"
 import { fetcher, type ApplicationDetail, type ApplicationSummary } from "@/lib/api"
@@ -85,14 +87,22 @@ export function DashboardClient({ user }: DashboardClientProps) {
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile top bar */}
         <header className="md:hidden flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant flex-shrink-0">
-          <span className="font-display text-lg font-extrabold text-primary">Visa Tracker</span>
-          <button
-            onClick={() => setMobileNavOpen(true)}
-            aria-label="Open menu"
-            className="text-on-surface-variant p-2 -mr-2 rounded-lg hover:bg-surface-container transition-colors"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          <span className="flex items-center gap-2.5 min-w-0">
+            <Logo size={28} priority />
+            <span className="font-display text-lg font-extrabold text-primary truncate">
+              Visa Tracker
+            </span>
+          </span>
+          <div className="flex items-center -mr-2">
+            <ThemeToggleIcon />
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+              className="text-on-surface-variant p-2 rounded-lg hover:bg-surface-container transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto">

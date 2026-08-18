@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Passport } from "@/components/icons"
+import { Logo } from "@/components/logo"
 import { api } from "@/lib/api"
 
 interface AuthFormProps {
@@ -46,9 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-stack-lg">
-          <div className="w-14 h-14 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-stack-md">
-            <Passport className="w-7 h-7" />
-          </div>
+          <Logo size={56} priority className="mb-stack-md rounded-xl" />
           <h1 className="font-display text-2xl font-extrabold text-primary">Visa Tracker</h1>
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mt-1.5">
             Digital Concierge

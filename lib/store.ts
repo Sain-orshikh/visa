@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto"
 import { getDb } from "./mongodb"
-import type { User, VisaApplication, VisaDocument, VisaType } from "./types"
+import type { SupportCategory, SupportTicket, User, VisaApplication, VisaDocument, VisaType } from "./types"
 
 /**
  * Data layer backed by MongoDB. Every document keeps its own `id` (a UUID)
@@ -19,6 +19,9 @@ async function applications() {
 }
 async function documents() {
   return (await getDb()).collection<VisaDocument>("documents")
+}
+async function supportTickets() {
+  return (await getDb()).collection<SupportTicket>("supportTickets")
 }
 
 /* ---------------------------------- Users --------------------------------- */
@@ -44,6 +47,50 @@ export async function createUser(input: { email: string; name: string; passwordH
   }
   await (await users()).insertOne({ ...user })
   return user
+}
+
+export async function updateUser(
+  id: string,
+  patch: { name?: string; email?: string; passwordHash?: string },
+): Promise<User | undefined> {
+  const safePatch: Partial<User> = {}
+  if (patch.name !== undefined) safePatch.name = patch.name.trim()
+  if (patch.email !== undefined) safePatch.email = patch.email.trim().toLowerCase()
+  if (patch.passwordHash !== undefined) safePatch.passwordHash = patch.passwordHash
+  if (Object.keys(safePatch).length === 0) return findUserById(id)
+
+  const result = await (await users()).findOneAndUpdate(
+    { id },
+    { $set: safePatch },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ?? undefined
+}
+
+/**
+ * Removes the user and everything hanging off them. Returns the public ids of
+ * any uploaded files so the caller can clear them from Cloudinary — the store
+ * itself stays free of upload-provider concerns.
+ */
+export async function deleteUserCascade(id: string): Promise<{ filePublicIds: string[] }> {
+  const ownedApps = await (await applications()).find({ userId: id }, NO_ID).toArray()
+  const appIds = ownedApps.map((a) => a.id)
+
+  const ownedDocs = appIds.length
+    ? await (await documents()).find({ applicationId: { $in: appIds } }, NO_ID).toArray()
+    : []
+  const filePublicIds = ownedDocs
+    .map((d) => d.filePublicId)
+    .filter((publicId): publicId is string => Boolean(publicId))
+
+  if (appIds.length) {
+    await (await documents()).deleteMany({ applicationId: { $in: appIds } })
+    await (await applications()).deleteMany({ userId: id })
+  }
+  await (await supportTickets()).deleteMany({ userId: id })
+  await (await users()).deleteOne({ id })
+
+  return { filePublicIds }
 }
 
 /* ------------------------------ Applications ------------------------------ */
@@ -144,6 +191,31 @@ export async function updateDocument(
 export async function deleteDocument(id: string): Promise<boolean> {
   const result = await (await documents()).deleteOne({ id })
   return result.deletedCount > 0
+}
+
+/* ----------------------------- Support tickets ---------------------------- */
+
+export async function createSupportTicket(input: {
+  userId: string
+  category: SupportCategory
+  subject: string
+  message: string
+}): Promise<SupportTicket> {
+  const ticket: SupportTicket = {
+    id: randomUUID(),
+    userId: input.userId,
+    category: input.category,
+    subject: input.subject.trim(),
+    message: input.message.trim(),
+    status: "open",
+    createdAt: new Date().toISOString(),
+  }
+  await (await supportTickets()).insertOne({ ...ticket })
+  return ticket
+}
+
+export async function listSupportTickets(userId: string): Promise<SupportTicket[]> {
+  return (await supportTickets()).find({ userId }, NO_ID).sort({ createdAt: -1 }).toArray()
 }
 
 /* --------------------------------- Seeding -------------------------------- */

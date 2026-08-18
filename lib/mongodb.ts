@@ -40,6 +40,8 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("applications").createIndex({ userId: 1 }),
     db.collection("documents").createIndex({ id: 1 }, { unique: true }),
     db.collection("documents").createIndex({ applicationId: 1 }),
+    db.collection("supportTickets").createIndex({ id: 1 }, { unique: true }),
+    db.collection("supportTickets").createIndex({ userId: 1 }),
   ])
 }
 

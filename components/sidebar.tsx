@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Briefcase, Euro, Flag, GraduationCap, HelpCircle, LogOut, Plane, Plus, Settings } from "lucide-react"
-import { Passport } from "@/components/icons"
+import { Logo } from "@/components/logo"
+import { ThemeToggleButton } from "@/components/theme-toggle"
 import { api, type ApplicationSummary } from "@/lib/api"
 import type { PublicUser } from "@/lib/types"
 
@@ -37,9 +38,7 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
     <nav className="bg-surface border-r border-outline-variant flex flex-col h-full w-64 flex-shrink-0 py-stack-lg">
       {/* Brand */}
       <div className="px-gutter mb-stack-lg flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
-          <Passport className="w-5 h-5" />
-        </div>
+        <Logo size={40} priority />
         <div className="min-w-0">
           <h1 className="font-display text-lg font-extrabold text-primary leading-tight truncate">
             Visa Tracker
@@ -110,14 +109,23 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
           <p className="text-sm font-semibold text-on-surface truncate">{user.name}</p>
           <p className="font-mono text-[11px] text-on-surface-variant truncate">{user.email}</p>
         </div>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left">
+        <ThemeToggleButton />
+        <Link
+          href="/settings"
+          onClick={() => onClose?.()}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left"
+        >
           <Settings className="w-[18px] h-[18px]" />
           <span className="text-sm">Settings</span>
-        </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left">
+        </Link>
+        <Link
+          href="/support"
+          onClick={() => onClose?.()}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left"
+        >
           <HelpCircle className="w-[18px] h-[18px]" />
           <span className="text-sm">Support</span>
-        </button>
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors text-left"
