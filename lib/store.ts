@@ -1,6 +1,16 @@
 import { randomUUID } from "crypto"
 import { getDb } from "./mongodb"
-import type { SupportCategory, SupportTicket, User, VisaApplication, VisaDocument, VisaFile, VisaType } from "./types"
+import type {
+  SupportCategory,
+  SupportTicket,
+  User,
+  UserCategory,
+  VisaApplication,
+  VisaDocument,
+  VisaFile,
+  VisaFolder,
+  VisaType,
+} from "./types"
 
 /**
  * Data layer backed by MongoDB. Every document keeps its own `id` (a UUID)
@@ -19,6 +29,9 @@ async function applications() {
 }
 async function documents() {
   return (await getDb()).collection<VisaDocument>("documents")
+}
+async function folders() {
+  return (await getDb()).collection<VisaFolder>("folders")
 }
 async function supportTickets() {
   return (await getDb()).collection<SupportTicket>("supportTickets")
@@ -67,6 +80,41 @@ export async function updateUser(
   return result ?? undefined
 }
 
+/* --------------------------- User categories ------------------------------ */
+
+export async function listUserCategories(userId: string): Promise<UserCategory[]> {
+  const user = await findUserById(userId)
+  return user?.categories ?? []
+}
+
+/** Adds a category, ignoring a repeat of one the user already has. */
+export async function addUserCategory(userId: string, category: UserCategory): Promise<UserCategory[]> {
+  const existing = await listUserCategories(userId)
+  if (existing.some((c) => c.id === category.id)) return existing
+  const categories = [...existing, category]
+  await (await users()).updateOne({ id: userId }, { $set: { categories } })
+  return categories
+}
+
+/**
+ * Removes a category and releases any documents still filed under it back to
+ * the "Other" bucket, so nothing ends up pointing at a category that's gone.
+ */
+export async function deleteUserCategory(userId: string, categoryId: string): Promise<UserCategory[]> {
+  const categories = (await listUserCategories(userId)).filter((c) => c.id !== categoryId)
+  await (await users()).updateOne({ id: userId }, { $set: { categories } })
+
+  const ownedApps = await (await applications()).find({ userId }, NO_ID).toArray()
+  const appIds = ownedApps.map((a) => a.id)
+  if (appIds.length) {
+    await (await documents()).updateMany(
+      { applicationId: { $in: appIds }, category: categoryId },
+      { $set: { category: null } },
+    )
+  }
+  return categories
+}
+
 /**
  * Removes the user and everything hanging off them. Returns the public ids of
  * any uploaded files so the caller can clear them from Cloudinary — the store
@@ -83,6 +131,7 @@ export async function deleteUserCascade(id: string): Promise<{ filePublicIds: st
 
   if (appIds.length) {
     await (await documents()).deleteMany({ applicationId: { $in: appIds } })
+    await (await folders()).deleteMany({ applicationId: { $in: appIds } })
     await (await applications()).deleteMany({ userId: id })
   }
   await (await supportTickets()).deleteMany({ userId: id })
@@ -93,13 +142,36 @@ export async function deleteUserCascade(id: string): Promise<{ filePublicIds: st
 
 /* ------------------------------ Applications ------------------------------ */
 
+/** Applications predating the archive feature have no `archivedAt` field. */
+function normalizeApplication(raw: VisaApplication): VisaApplication {
+  return { ...raw, archivedAt: raw.archivedAt ?? null }
+}
+
 export async function listApplications(userId: string): Promise<VisaApplication[]> {
-  return (await applications()).find({ userId }, NO_ID).sort({ createdAt: 1 }).toArray()
+  const apps = await (await applications()).find({ userId }, NO_ID).sort({ createdAt: 1 }).toArray()
+  return apps.map(normalizeApplication)
 }
 
 export async function getApplication(userId: string, id: string): Promise<VisaApplication | undefined> {
   const doc = await (await applications()).findOne({ id, userId }, NO_ID)
-  return doc ?? undefined
+  return doc ? normalizeApplication(doc) : undefined
+}
+
+/** Archives or restores an application. Archived ones stay fully intact. */
+export async function setApplicationArchived(
+  userId: string,
+  id: string,
+  archived: boolean,
+): Promise<VisaApplication | undefined> {
+  const app = await getApplication(userId, id)
+  if (!app) return undefined
+  const archivedAt = archived ? new Date().toISOString() : null
+  const result = await (await applications()).findOneAndUpdate(
+    { id, userId },
+    { $set: { archivedAt } },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ? normalizeApplication(result) : undefined
 }
 
 export async function createApplication(input: {
@@ -122,29 +194,89 @@ export async function createApplication(input: {
     applicationCenter: input.applicationCenter ?? null,
     applicantName: input.applicantName ?? null,
     notes: input.notes ?? null,
+    archivedAt: null,
     createdAt: new Date().toISOString(),
   }
   await (await applications()).insertOne({ ...app })
   return app
 }
 
-export async function deleteApplication(userId: string, id: string): Promise<boolean> {
+/**
+ * Deletes an application with its documents and folders. Returns the public
+ * ids of any uploaded files so the caller can clear them from Cloudinary.
+ */
+export async function deleteApplication(
+  userId: string,
+  id: string,
+): Promise<{ filePublicIds: string[] } | null> {
   const app = await getApplication(userId, id)
-  if (!app) return false
+  if (!app) return null
+
+  const ownedDocs = await (await documents()).find({ applicationId: id }, NO_ID).toArray()
+  const filePublicIds = ownedDocs.flatMap((d) =>
+    normalizeDocument(d)
+      .files.map((f) => f.publicId)
+      .filter(Boolean),
+  )
+
   await (await applications()).deleteOne({ id })
   await (await documents()).deleteMany({ applicationId: id })
-  return true
+  await (await folders()).deleteMany({ applicationId: id })
+  return { filePublicIds }
+}
+
+/* --------------------------------- Folders -------------------------------- */
+
+export async function listFolders(applicationId: string): Promise<VisaFolder[]> {
+  return (await folders()).find({ applicationId }, NO_ID).sort({ createdAt: 1 }).toArray()
+}
+
+export async function getFolder(id: string): Promise<VisaFolder | undefined> {
+  const folder = await (await folders()).findOne({ id }, NO_ID)
+  return folder ?? undefined
+}
+
+export async function createFolder(input: { applicationId: string; name: string }): Promise<VisaFolder> {
+  const folder: VisaFolder = {
+    id: randomUUID(),
+    applicationId: input.applicationId,
+    name: input.name,
+    createdAt: new Date().toISOString(),
+  }
+  await (await folders()).insertOne({ ...folder })
+  return folder
+}
+
+export async function renameFolder(id: string, name: string): Promise<VisaFolder | undefined> {
+  const result = await (await folders()).findOneAndUpdate(
+    { id },
+    { $set: { name } },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ?? undefined
+}
+
+/**
+ * Deleting a folder never deletes documents — they fall back to the
+ * application root, which is exactly where they'd be without folders at all.
+ */
+export async function deleteFolder(id: string): Promise<boolean> {
+  await (await documents()).updateMany({ folderId: id }, { $set: { folderId: null } })
+  const result = await (await folders()).deleteOne({ id })
+  return result.deletedCount > 0
 }
 
 /* -------------------------------- Documents ------------------------------- */
 
 /**
- * Older documents were written before multi-file support and carry a single
- * `fileUrl`/`filePublicId`/... set instead of a `files` array. Fold that
- * legacy shape into `files` on read so nothing already uploaded is orphaned.
+ * Folds two pre-existing shapes forward: documents written before multi-file
+ * support carry a single `fileUrl`/`filePublicId`/... set instead of a `files`
+ * array, and documents written before folders have no `folderId` at all. Both
+ * are normalized on read so nothing already stored is orphaned.
  */
 function normalizeDocument(raw: VisaDocument): VisaDocument {
-  if (Array.isArray(raw.files)) return raw
+  const folderId = raw.folderId ?? null
+  if (Array.isArray(raw.files)) return { ...raw, folderId }
   const legacy = raw as unknown as {
     fileUrl?: string | null
     filePublicId?: string | null
@@ -164,7 +296,7 @@ function normalizeDocument(raw: VisaDocument): VisaDocument {
         },
       ]
     : []
-  return { ...raw, files }
+  return { ...raw, folderId, files }
 }
 
 export async function listDocuments(applicationId: string): Promise<VisaDocument[]> {
@@ -182,6 +314,7 @@ export async function createDocument(input: {
   name: string
   description?: string
   category?: string | null
+  folderId?: string | null
   deadline?: string | null
 }): Promise<VisaDocument> {
   const doc: VisaDocument = {
@@ -190,6 +323,7 @@ export async function createDocument(input: {
     name: input.name,
     description: input.description ?? "",
     category: input.category ?? null,
+    folderId: input.folderId ?? null,
     deadline: input.deadline ?? null,
     status: "pending",
     files: [],

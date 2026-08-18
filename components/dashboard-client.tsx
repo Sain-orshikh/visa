@@ -8,9 +8,10 @@ import { Sidebar } from "@/components/sidebar"
 import { Logo } from "@/components/logo"
 import { ThemeToggleIcon } from "@/components/theme-toggle"
 import { DocumentChecklist } from "@/components/document-checklist"
-import { AddDocumentModal } from "@/components/add-document-modal"
+import { DocumentModal } from "@/components/document-modal"
+import { resolveCategories } from "@/lib/categories"
 import { fetcher, type ApplicationDetail, type ApplicationSummary } from "@/lib/api"
-import type { PublicUser, VisaDocument } from "@/lib/types"
+import type { PublicUser, UserCategory, VisaDocument, VisaFolder } from "@/lib/types"
 
 interface DashboardClientProps {
   user: PublicUser
@@ -25,7 +26,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
     "/api/applications",
     fetcher,
   )
-  const applications = appsData?.applications ?? []
+  const allApplications = appsData?.applications ?? []
+  // Archived applications stay out of the dashboard; Settings manages them.
+  const applications = allApplications.filter((a) => !a.archivedAt)
 
   // Keep an active application selected.
   useEffect(() => {
@@ -41,7 +44,11 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const { data: detail, mutate: mutateDetail } = useSWR<{
     application: ApplicationDetail
     documents: VisaDocument[]
+    folders: VisaFolder[]
   }>(activeId ? `/api/applications/${activeId}` : null, fetcher)
+
+  const { data: categoriesData } = useSWR<{ categories: UserCategory[] }>("/api/categories", fetcher)
+  const categories = resolveCategories(categoriesData?.categories ?? [])
 
   function refreshAll() {
     mutateDetail()
@@ -50,6 +57,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   const application = detail?.application
   const documents = detail?.documents ?? []
+  const folders = detail?.folders ?? []
   const progress = application?.progress ?? 0
 
   return (
@@ -116,7 +124,13 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   progress={progress}
                   onAdd={() => setShowAdd(true)}
                 />
-                <DocumentChecklist documents={documents} onChanged={refreshAll} />
+                <DocumentChecklist
+                  applicationId={application.id}
+                  documents={documents}
+                  folders={folders}
+                  categories={categories}
+                  onChanged={refreshAll}
+                />
               </>
             )}
           </div>
@@ -124,7 +138,13 @@ export function DashboardClient({ user }: DashboardClientProps) {
       </main>
 
       {showAdd && activeId && (
-        <AddDocumentModal applicationId={activeId} onClose={() => setShowAdd(false)} onAdded={refreshAll} />
+        <DocumentModal
+          applicationId={activeId}
+          categories={categories}
+          folders={folders}
+          onClose={() => setShowAdd(false)}
+          onSaved={refreshAll}
+        />
       )}
     </div>
   )

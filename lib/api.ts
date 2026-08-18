@@ -1,4 +1,13 @@
-import type { PublicUser, SupportCategory, SupportTicket, VisaApplication, VisaDocument, VisaType } from "./types"
+import type {
+  PublicUser,
+  SupportCategory,
+  SupportTicket,
+  UserCategory,
+  VisaApplication,
+  VisaDocument,
+  VisaFolder,
+  VisaType,
+} from "./types"
 
 export interface ApplicationSummary extends VisaApplication {
   totalDocuments: number
@@ -58,13 +67,40 @@ export const api = {
     notes?: string | null
   }) => send<{ application: VisaApplication }>("/api/applications", "POST", input),
   deleteApplication: (id: string) => send<{ ok: true }>(`/api/applications/${id}`, "DELETE"),
+  setApplicationArchived: (id: string, archived: boolean) =>
+    send<{ application: VisaApplication }>(`/api/applications/${id}`, "PATCH", { archived }),
+
+  listCategories: () => send<{ categories: UserCategory[] }>("/api/categories", "GET"),
+  createCategory: (label: string) =>
+    send<{ categories: UserCategory[] }>("/api/categories", "POST", { label }),
+  deleteCategory: (id: string) => send<{ categories: UserCategory[] }>("/api/categories", "DELETE", { id }),
+
+  createFolder: (applicationId: string, name: string) =>
+    send<{ folder: VisaFolder }>(`/api/applications/${applicationId}/folders`, "POST", { name }),
+  renameFolder: (id: string, name: string) =>
+    send<{ folder: VisaFolder }>(`/api/folders/${id}`, "PATCH", { name }),
+  deleteFolder: (id: string) => send<{ ok: true }>(`/api/folders/${id}`, "DELETE"),
 
   createDocument: (
     applicationId: string,
-    input: { name: string; description?: string; category?: string | null; deadline?: string | null },
+    input: {
+      name: string
+      description?: string
+      category?: string | null
+      folderId?: string | null
+      deadline?: string | null
+    },
   ) => send<{ document: VisaDocument }>(`/api/applications/${applicationId}/documents`, "POST", input),
-  updateDocument: (id: string, input: { deadline?: string | null; name?: string; description?: string }) =>
-    send<{ document: VisaDocument }>(`/api/documents/${id}`, "PATCH", input),
+  updateDocument: (
+    id: string,
+    input: {
+      deadline?: string | null
+      name?: string
+      description?: string
+      category?: string | null
+      folderId?: string | null
+    },
+  ) => send<{ document: VisaDocument }>(`/api/documents/${id}`, "PATCH", input),
   deleteDocument: (id: string) => send<{ ok: true }>(`/api/documents/${id}`, "DELETE"),
 
   uploadFile: async (documentId: string, files: File | File[]) => {

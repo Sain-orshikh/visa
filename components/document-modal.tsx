@@ -1,23 +1,45 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CalendarDays, ChevronDown, FileText, Folder, PlusCircle, X } from "lucide-react"
+import { CalendarDays, ChevronDown, FileText, Folder, Loader2, PlusCircle, Save, X } from "lucide-react"
 import { api } from "@/lib/api"
+import { OTHER_CATEGORY, type CategoryOption } from "@/lib/categories"
+import type { VisaDocument, VisaFolder } from "@/lib/types"
 
-interface AddDocumentModalProps {
+interface DocumentModalProps {
   applicationId: string
+  categories: CategoryOption[]
+  folders: VisaFolder[]
+  /** Omitted when creating; supplied to edit an existing document. */
+  document?: VisaDocument
+  /** Pre-selects a folder for a new document. Ignored when editing. */
+  defaultFolderId?: string | null
   onClose: () => void
-  onAdded: () => void
+  onSaved: () => void
 }
 
 const FIELD =
   "w-full py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
 
-export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumentModalProps) {
-  const [name, setName] = useState("")
-  const [deadline, setDeadline] = useState("")
-  const [category, setCategory] = useState("")
-  const [notes, setNotes] = useState("")
+export function DocumentModal({
+  applicationId,
+  categories,
+  folders,
+  document,
+  defaultFolderId = null,
+  onClose,
+  onSaved,
+}: DocumentModalProps) {
+  const editing = Boolean(document)
+
+  const [name, setName] = useState(document?.name ?? "")
+  const [deadline, setDeadline] = useState(document?.deadline ?? "")
+  // "other" is the implicit bucket, so it's stored as an empty value.
+  const [category, setCategory] = useState(
+    document?.category && document.category !== OTHER_CATEGORY.key ? document.category : "",
+  )
+  const [folderId, setFolderId] = useState(document?.folderId ?? defaultFolderId ?? "")
+  const [notes, setNotes] = useState(document?.description ?? "")
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -30,6 +52,8 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
     return () => window.removeEventListener("keydown", onKey)
   }, [onClose])
 
+  const selectableCategories = categories.filter((c) => c.key !== OTHER_CATEGORY.key)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) {
@@ -39,16 +63,22 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
     setError(null)
     setSaving(true)
     try {
-      await api.createDocument(applicationId, {
+      const payload = {
         name: name.trim(),
         description: notes.trim(),
         category: category || null,
+        folderId: folderId || null,
         deadline: deadline || null,
-      })
-      onAdded()
+      }
+      if (document) {
+        await api.updateDocument(document.id, payload)
+      } else {
+        await api.createDocument(applicationId, payload)
+      }
+      onSaved()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add document.")
+      setError(err instanceof Error ? err.message : "Could not save the document.")
       setSaving(false)
     }
   }
@@ -61,7 +91,7 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="add-doc-title"
+        aria-labelledby="doc-modal-title"
         onClick={(e) => e.stopPropagation()}
         className="bg-surface rounded-xl w-full max-w-2xl flex flex-col max-h-full overflow-hidden shadow-[0_16px_40px_rgba(16,24,40,0.24)] animate-in fade-in slide-in-from-bottom-4 duration-200"
       >
@@ -71,8 +101,8 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
               Checklist
             </p>
-            <h2 id="add-doc-title" className="font-display text-xl font-bold text-on-surface">
-              Add a document
+            <h2 id="doc-modal-title" className="font-display text-xl font-bold text-on-surface">
+              {editing ? "Edit document" : "Add a document"}
             </h2>
           </div>
           <button
@@ -125,7 +155,7 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
                 Category
               </label>
               <div className="relative">
-                <Folder className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                <FileText className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
                 <select
                   id="doc-type"
                   value={category}
@@ -133,15 +163,44 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
                   className={`${FIELD} pl-10 pr-10 appearance-none cursor-pointer`}
                 >
                   <option value="">Other</option>
-                  <option value="identity">Identity</option>
-                  <option value="financial">Financial</option>
-                  <option value="travel">Travel</option>
+                  {selectableCategories.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.label}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
               </div>
-              <p className="text-xs text-on-surface-variant">Groups the document in your checklist.</p>
+              <p className="text-xs text-on-surface-variant">
+                Groups the document in your checklist. Add your own in Settings.
+              </p>
             </div>
           </div>
+
+          {folders.length > 0 && (
+            <div className="flex flex-col gap-stack-sm">
+              <label htmlFor="doc-folder" className="text-sm font-semibold text-on-surface">
+                Folder
+              </label>
+              <div className="relative">
+                <Folder className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                <select
+                  id="doc-folder"
+                  value={folderId}
+                  onChange={(e) => setFolderId(e.target.value)}
+                  className={`${FIELD} pl-10 pr-10 appearance-none cursor-pointer`}
+                >
+                  <option value="">No folder</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-stack-sm">
             <label htmlFor="doc-notes" className="text-sm font-semibold text-on-surface flex justify-between">
@@ -178,8 +237,14 @@ export function AddDocumentModal({ applicationId, onClose, onAdded }: AddDocumen
               disabled={saving}
               className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-60"
             >
-              <PlusCircle className="w-4 h-4" />
-              {saving ? "Adding…" : "Add document"}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : editing ? (
+                <Save className="w-4 h-4" />
+              ) : (
+                <PlusCircle className="w-4 h-4" />
+              )}
+              {saving ? "Saving…" : editing ? "Save changes" : "Add document"}
             </button>
           </div>
         </form>

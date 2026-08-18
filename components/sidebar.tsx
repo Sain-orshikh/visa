@@ -56,7 +56,9 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
         </p>
 
         {applications.length === 0 && (
-          <p className="px-3 py-2 text-sm text-on-surface-variant">No applications yet.</p>
+          <p className="px-3 py-2 text-sm text-on-surface-variant">
+            No active applications. Archived ones live in Settings.
+          </p>
         )}
 
         {applications.map((app) => {

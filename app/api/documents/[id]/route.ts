@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { deleteDocument, getApplication, getDocument, updateDocument } from "@/lib/store"
+import { deleteDocument, getApplication, getDocument, getFolder, updateDocument } from "@/lib/store"
 import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
 
 async function loadOwnedDocument(documentId: string) {
@@ -18,7 +18,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const result = await loadOwnedDocument(id)
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status })
 
-  let body: { name?: string; description?: string; category?: string | null; deadline?: string | null }
+  let body: {
+    name?: string
+    description?: string
+    category?: string | null
+    folderId?: string | null
+    deadline?: string | null
+  }
   try {
     body = await request.json()
   } catch {
@@ -30,6 +36,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.description === "string") patch.description = body.description
   if (body.category !== undefined) patch.category = body.category
   if (body.deadline !== undefined) patch.deadline = body.deadline || null
+
+  // A folder move must stay inside the same application.
+  if (body.folderId !== undefined) {
+    if (body.folderId === null) {
+      patch.folderId = null
+    } else {
+      const folder = await getFolder(body.folderId)
+      if (!folder || folder.applicationId !== result.document.applicationId) {
+        return NextResponse.json({ error: "Folder not found" }, { status: 404 })
+      }
+      patch.folderId = folder.id
+    }
+  }
 
   const document = await updateDocument(id, patch)
   return NextResponse.json({ document })
