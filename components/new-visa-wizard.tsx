@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -8,14 +8,15 @@ import {
   Briefcase,
   Calendar as CalendarToday,
   Check,
-  ChevronDown,
   GraduationCap,
   Luggage,
-  MapPin,
+  Plus,
   Search,
+  X,
 } from "lucide-react"
 import { api } from "@/lib/api"
 import type { VisaType } from "@/lib/types"
+import { COUNTRIES } from "@/lib/countries"
 
 const STEPS = ["Destination", "Details", "Documents", "Review"]
 
@@ -23,13 +24,6 @@ const VISA_OPTIONS: { value: VisaType; label: string; description: string; Icon:
   { value: "tourist", label: "Tourist", description: "Leisure and short visits", Icon: Luggage },
   { value: "work", label: "Business", description: "Meetings and work", Icon: Briefcase },
   { value: "student", label: "Student", description: "Study programs", Icon: GraduationCap },
-]
-
-const APP_CENTERS = [
-  { value: "lon", label: "London, UK" },
-  { value: "nyc", label: "New York, USA" },
-  { value: "dxb", label: "Dubai, UAE" },
-  { value: "sin", label: "Singapore" },
 ]
 
 /** Categories travel with the starter docs so the checklist can group them. */
@@ -42,6 +36,12 @@ const STARTER_DOCS: { name: string; category: string }[] = [
   { name: "Employment Letter", category: "financial" },
 ]
 
+interface CustomDoc {
+  id: string
+  name: string
+  note: string
+}
+
 export function NewVisaWizard() {
   const router = useRouter()
   const [step, setStep] = useState(0)
@@ -49,9 +49,10 @@ export function NewVisaWizard() {
   const [error, setError] = useState<string | null>(null)
 
   const [destination, setDestination] = useState("")
+  const [countryQuery, setCountryQuery] = useState("")
+  const [countryOpen, setCountryOpen] = useState(false)
   const [visaType, setVisaType] = useState<VisaType>("tourist")
   const [travelDate, setTravelDate] = useState("")
-  const [appCenter, setAppCenter] = useState("")
   const [applicantName, setApplicantName] = useState("")
   const [notes, setNotes] = useState("")
   const [selectedDocs, setSelectedDocs] = useState<string[]>([
@@ -60,6 +61,32 @@ export function NewVisaWizard() {
     "Flight Itinerary",
     "Travel Insurance",
   ])
+  const [docNotes, setDocNotes] = useState<Record<string, string>>({})
+  const [customDocs, setCustomDocs] = useState<CustomDoc[]>([])
+  const [customDocName, setCustomDocName] = useState("")
+
+  const countryContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (countryContainerRef.current && !countryContainerRef.current.contains(e.target as Node)) {
+        setCountryOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
+
+  const filteredCountries = COUNTRIES.filter((c) => c.toLowerCase().includes(countryQuery.trim().toLowerCase())).slice(
+    0,
+    8,
+  )
+
+  function selectCountry(country: string) {
+    setDestination(country)
+    setCountryQuery(country)
+    setCountryOpen(false)
+  }
 
   const visaLabel = VISA_OPTIONS.find((v) => v.value === visaType)?.label ?? ""
 
@@ -67,10 +94,27 @@ export function NewVisaWizard() {
     setSelectedDocs((prev) => (prev.includes(name) ? prev.filter((d) => d !== name) : [...prev, name]))
   }
 
+  function addCustomDoc() {
+    const name = customDocName.trim()
+    if (!name) return
+    setCustomDocs((prev) => [...prev, { id: crypto.randomUUID(), name, note: "" }])
+    setCustomDocName("")
+  }
+
+  function removeCustomDoc(id: string) {
+    setCustomDocs((prev) => prev.filter((d) => d.id !== id))
+  }
+
+  function updateCustomDocNote(id: string, note: string) {
+    setCustomDocs((prev) => prev.map((d) => (d.id === id ? { ...d, note } : d)))
+  }
+
   function canProceed(): boolean {
     if (step === 0) return destination.trim().length > 0
     return true
   }
+
+  const totalDocs = selectedDocs.length + customDocs.length
 
   async function handleFinish() {
     setSaving(true)
@@ -80,14 +124,24 @@ export function NewVisaWizard() {
         destinationCountry: destination.trim(),
         visaType,
         travelDate: travelDate || null,
-        applicationCenter: appCenter || null,
         applicantName: applicantName.trim() || null,
         notes: notes.trim() || null,
       })
-      // Seed the chosen starter documents, carrying their category through.
+      // Seed the chosen starter documents, carrying their category and any note through.
       for (const name of selectedDocs) {
         const starter = STARTER_DOCS.find((d) => d.name === name)
-        await api.createDocument(application.id, { name, category: starter?.category ?? null })
+        await api.createDocument(application.id, {
+          name,
+          category: starter?.category ?? null,
+          description: docNotes[name]?.trim() || undefined,
+        })
+      }
+      // Seed any custom documents the applicant added.
+      for (const doc of customDocs) {
+        await api.createDocument(application.id, {
+          name: doc.name,
+          description: doc.note.trim() || undefined,
+        })
       }
       router.push("/dashboard")
       router.refresh()
@@ -205,16 +259,37 @@ export function NewVisaWizard() {
             {step === 0 && (
               <>
                 <Field label="Destination country" htmlFor="destination">
-                  <div className="relative">
+                  <div className="relative" ref={countryContainerRef}>
                     <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
                     <input
                       id="destination"
                       type="text"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
+                      autoComplete="off"
+                      value={countryQuery}
+                      onChange={(e) => {
+                        setCountryQuery(e.target.value)
+                        setDestination(e.target.value)
+                        setCountryOpen(true)
+                      }}
+                      onFocus={() => setCountryOpen(true)}
                       placeholder="Search for a country (e.g. France, USA, Japan)"
                       className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
                     />
+                    {countryOpen && countryQuery.trim().length > 0 && filteredCountries.length > 0 && (
+                      <ul className="absolute z-10 top-full mt-1 w-full bg-surface border border-outline-variant rounded-lg shadow-lg max-h-56 overflow-y-auto py-1">
+                        {filteredCountries.map((country) => (
+                          <li key={country}>
+                            <button
+                              type="button"
+                              onClick={() => selectCountry(country)}
+                              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container transition-colors"
+                            >
+                              {country}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </Field>
 
@@ -247,39 +322,18 @@ export function NewVisaWizard() {
                   </div>
                 </Field>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-                  <Field label="Planned travel date" htmlFor="travel_date">
-                    <div className="relative">
-                      <CalendarToday className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
-                      <input
-                        id="travel_date"
-                        type="date"
-                        value={travelDate}
-                        onChange={(e) => setTravelDate(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
-                      />
-                    </div>
-                  </Field>
-                  <Field label="Application centre" htmlFor="app_center">
-                    <div className="relative">
-                      <MapPin className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
-                      <select
-                        id="app_center"
-                        value={appCenter}
-                        onChange={(e) => setAppCenter(e.target.value)}
-                        className="w-full pl-10 pr-10 py-3 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none text-on-surface"
-                      >
-                        <option value="">Select nearest centre</option>
-                        {APP_CENTERS.map((c) => (
-                          <option key={c.value} value={c.value}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
-                    </div>
-                  </Field>
-                </div>
+                <Field label="Planned travel date" htmlFor="travel_date">
+                  <div className="relative">
+                    <CalendarToday className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                    <input
+                      id="travel_date"
+                      type="date"
+                      value={travelDate}
+                      onChange={(e) => setTravelDate(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
+                    />
+                  </div>
+                </Field>
               </>
             )}
 
@@ -311,33 +365,111 @@ export function NewVisaWizard() {
 
             {/* STEP 3 */}
             {step === 2 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md">
-                {STARTER_DOCS.map(({ name }) => {
-                  const active = selectedDocs.includes(name)
-                  return (
-                    <button
-                      type="button"
-                      key={name}
-                      onClick={() => toggleDoc(name)}
-                      aria-pressed={active}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-colors ${
-                        active
-                          ? "border-primary bg-selected"
-                          : "border-outline-variant hover:bg-surface-container"
-                      }`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${
-                          active ? "bg-primary border-primary text-on-primary" : "border-outline"
+              <div className="flex flex-col gap-stack-md">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md">
+                  {STARTER_DOCS.map(({ name }) => {
+                    const active = selectedDocs.includes(name)
+                    return (
+                      <div
+                        key={name}
+                        className={`rounded-lg border transition-colors ${
+                          active ? "border-primary bg-selected" : "border-outline-variant"
                         }`}
                       >
-                        {active && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                      </span>
-                      <span className="text-sm text-on-surface">{name}</span>
-                    </button>
-                  )
-                })}
+                        <button
+                          type="button"
+                          onClick={() => toggleDoc(name)}
+                          aria-pressed={active}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                            active ? "" : "hover:bg-surface-container"
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${
+                              active ? "bg-primary border-primary text-on-primary" : "border-outline"
+                            }`}
+                          >
+                            {active && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                          </span>
+                          <span className="text-sm text-on-surface">{name}</span>
+                        </button>
+                        {active && (
+                          <div className="px-4 pb-3">
+                            <input
+                              type="text"
+                              value={docNotes[name] ?? ""}
+                              onChange={(e) => setDocNotes((prev) => ({ ...prev, [name]: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="Add a note (optional)"
+                              className="w-full px-3 py-2 bg-surface-container-low border border-outline-variant rounded-md text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {customDocs.length > 0 && (
+                  <div className="flex flex-col gap-stack-md">
+                    {customDocs.map((doc) => (
+                      <div key={doc.id} className="rounded-lg border border-primary bg-selected">
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <span
+                            aria-hidden="true"
+                            className="w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 bg-primary border-primary text-on-primary"
+                          >
+                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                          </span>
+                          <span className="text-sm text-on-surface flex-1">{doc.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeCustomDoc(doc.id)}
+                            aria-label={`Remove ${doc.name}`}
+                            className="text-on-surface-variant hover:text-error transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="px-4 pb-3">
+                          <input
+                            type="text"
+                            value={doc.note}
+                            onChange={(e) => updateCustomDocNote(doc.id, e.target.value)}
+                            placeholder="Add a note (optional)"
+                            className="w-full px-3 py-2 bg-surface-container-low border border-outline-variant rounded-md text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-stack-sm">
+                  <input
+                    type="text"
+                    value={customDocName}
+                    onChange={(e) => setCustomDocName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addCustomDoc()
+                      }
+                    }}
+                    placeholder="Add a custom document…"
+                    className="flex-1 px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomDoc}
+                    disabled={!customDocName.trim()}
+                    className="px-4 py-3 text-sm font-semibold text-primary border border-outline-variant rounded-lg hover:bg-surface-container transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add
+                  </button>
+                </div>
               </div>
             )}
 
@@ -360,11 +492,7 @@ export function NewVisaWizard() {
                       : "Not set"
                   }
                 />
-                <ReviewRow
-                  label="Application centre"
-                  value={APP_CENTERS.find((c) => c.value === appCenter)?.label ?? "Not set"}
-                />
-                <ReviewRow label="Documents" value={`${selectedDocs.length} selected`} />
+                <ReviewRow label="Documents" value={`${totalDocs} selected`} />
                 {applicantName.trim() && <ReviewRow label="Applicant" value={applicantName.trim()} />}
                 {notes.trim() && <ReviewRow label="Notes" value={notes.trim()} />}
               </dl>

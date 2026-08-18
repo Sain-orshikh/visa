@@ -33,10 +33,8 @@ export const metadata: Metadata = {
     'Track visa application documents, deadlines, and progress in one calm, organized workspace.',
   generator: 'v0.app',
   icons: {
-    icon: [
-      { url: '/logo.webp', type: 'image/webp' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
     apple: '/apple-icon.png',
   },
 }
