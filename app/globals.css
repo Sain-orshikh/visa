@@ -1,0 +1,301 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  /* shadcn base tokens (kept for component compatibility) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* "Ledger & Ink" surface + role tokens */
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-on-secondary: var(--on-secondary);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-on-background: var(--on-background);
+  --color-surface: var(--surface);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  /* Status roles — each state gets its own colour, none of them borrowed */
+  --color-error: var(--error);
+  --color-error-container: var(--error-container);
+  --color-on-error: var(--on-error);
+  --color-on-error-container: var(--on-error-container);
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+  --color-on-warning-container: var(--on-warning-container);
+  --color-success: var(--success);
+  --color-success-container: var(--success-container);
+  --color-on-success-container: var(--on-success-container);
+  --color-stamp: var(--stamp);
+  --color-stamp-container: var(--stamp-container);
+  --color-on-stamp-container: var(--on-stamp-container);
+
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --spacing-gutter: 24px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 32px;
+  --spacing-margin-mobile: 16px;
+  --spacing-margin-desktop: 32px;
+  --spacing-container-max: 1200px;
+}
+
+/* ---------------------------------------------------------------
+   Light — ledger paper. The page sits on tinted stock and cards are
+   white, so a card genuinely lifts instead of dissolving into it.
+   --------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --background: #eef1f6;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --primary: #1b3a6b;
+  --primary-foreground: #ffffff;
+  --secondary: #4a5568;
+  --secondary-foreground: #ffffff;
+  --muted: #e7ecf4;
+  --muted-foreground: #4a5568;
+  --accent: #dce3ee;
+  --accent-foreground: #101828;
+  --destructive: #a32b23;
+  --border: #d4dbe6;
+  --input: #d4dbe6;
+  --ring: #1b3a6b;
+  --radius: 0.5rem;
+
+  --primary-container: #2e5596;
+  --on-primary: #ffffff;
+  --on-primary-container: #ffffff;
+  --primary-fixed: #dbe4f3;
+  --primary-fixed-dim: #b8c9e6;
+  --on-secondary: #ffffff;
+  --on-surface: #101828;
+  --on-surface-variant: #4a5568;
+  --on-background: #101828;
+
+  --surface: #ffffff;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f6f8fb;
+  --surface-container: #e7ecf4;
+  --surface-container-high: #dce3ee;
+  --surface-container-highest: #cfd9e8;
+  --outline: #8a94a6;
+  --outline-variant: #d4dbe6;
+
+  /* Oxblood — reserved for genuinely wrong: overdue, failure. */
+  --error: #a32b23;
+  --error-container: #fbe3e0;
+  --on-error: #ffffff;
+  --on-error-container: #7a1d17;
+  /* Stamp amber — the ordinary "not done yet" state. Not an error. */
+  --warning: #8a5a00;
+  --warning-container: #fcefd4;
+  --on-warning-container: #6b4400;
+  /* Entry green — cleared, on file. */
+  --success: #1f6f4a;
+  --success-container: #ddf0e5;
+  --on-success-container: #145135;
+  /* Stamp violet — the signature accent, spent only on the MRZ band. */
+  --stamp: #6b4a9e;
+  --stamp-container: #ece5f7;
+  --on-stamp-container: #4c3175;
+}
+
+/* ---------------------------------------------------------------
+   Dark — ink on night. Same roles, re-pitched so contrast holds.
+   Applies on system preference and via an explicit .dark class.
+   --------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+
+    --background: #0d1420;
+    --foreground: #e6ebf4;
+    --card: #161f2f;
+    --card-foreground: #e6ebf4;
+    --popover: #161f2f;
+    --popover-foreground: #e6ebf4;
+    --primary: #a9c4ee;
+    --primary-foreground: #0d1420;
+    --secondary: #9aa7bd;
+    --secondary-foreground: #0d1420;
+    --muted: #1f2a3d;
+    --muted-foreground: #9aa7bd;
+    --accent: #26334a;
+    --accent-foreground: #e6ebf4;
+    --destructive: #f2b8b3;
+    --border: #2b374d;
+    --input: #2b374d;
+    --ring: #a9c4ee;
+
+    --primary-container: #274470;
+    --on-primary: #0d1420;
+    --on-primary-container: #d6e2f8;
+    --primary-fixed: #274470;
+    --primary-fixed-dim: #1c3357;
+    --on-secondary: #0d1420;
+    --on-surface: #e6ebf4;
+    --on-surface-variant: #9aa7bd;
+    --on-background: #e6ebf4;
+
+    --surface: #161f2f;
+    --surface-bright: #1f2a3d;
+    --surface-container-lowest: #111927;
+    --surface-container-low: #161f2f;
+    --surface-container: #1f2a3d;
+    --surface-container-high: #26334a;
+    --surface-container-highest: #2f3e58;
+    --outline: #7a879e;
+    --outline-variant: #2b374d;
+
+    --error: #f2b8b3;
+    --error-container: #4a1512;
+    --on-error: #0d1420;
+    --on-error-container: #ffdad6;
+    --warning: #f0c26a;
+    --warning-container: #453100;
+    --on-warning-container: #f8e2b4;
+    --success: #86d6aa;
+    --success-container: #123c28;
+    --on-success-container: #c6ebd6;
+    --stamp: #c4aaf0;
+    --stamp-container: #2f2148;
+    --on-stamp-container: #e2d4f8;
+  }
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0d1420;
+  --foreground: #e6ebf4;
+  --card: #161f2f;
+  --card-foreground: #e6ebf4;
+  --popover: #161f2f;
+  --popover-foreground: #e6ebf4;
+  --primary: #a9c4ee;
+  --primary-foreground: #0d1420;
+  --secondary: #9aa7bd;
+  --secondary-foreground: #0d1420;
+  --muted: #1f2a3d;
+  --muted-foreground: #9aa7bd;
+  --accent: #26334a;
+  --accent-foreground: #e6ebf4;
+  --destructive: #f2b8b3;
+  --border: #2b374d;
+  --input: #2b374d;
+  --ring: #a9c4ee;
+
+  --primary-container: #274470;
+  --on-primary: #0d1420;
+  --on-primary-container: #d6e2f8;
+  --primary-fixed: #274470;
+  --primary-fixed-dim: #1c3357;
+  --on-secondary: #0d1420;
+  --on-surface: #e6ebf4;
+  --on-surface-variant: #9aa7bd;
+  --on-background: #e6ebf4;
+
+  --surface: #161f2f;
+  --surface-bright: #1f2a3d;
+  --surface-container-lowest: #111927;
+  --surface-container-low: #161f2f;
+  --surface-container: #1f2a3d;
+  --surface-container-high: #26334a;
+  --surface-container-highest: #2f3e58;
+  --outline: #7a879e;
+  --outline-variant: #2b374d;
+
+  --error: #f2b8b3;
+  --error-container: #4a1512;
+  --on-error: #0d1420;
+  --on-error-container: #ffdad6;
+  --warning: #f0c26a;
+  --warning-container: #453100;
+  --on-warning-container: #f8e2b4;
+  --success: #86d6aa;
+  --success-container: #123c28;
+  --on-success-container: #c6ebd6;
+  --stamp: #c4aaf0;
+  --stamp-container: #2f2148;
+  --on-stamp-container: #e2d4f8;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* The display face is set tight and heavy; it should never track like body copy. */
+  .font-display {
+    letter-spacing: -0.022em;
+  }
+}
+
+@layer components {
+  /* Machine-readable zone — the signature device, lifted from the bottom
+     of a passport data page. Monospace, letter-spaced, chevron-padded. */
+  .mrz {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.75;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
