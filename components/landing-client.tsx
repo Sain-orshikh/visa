@@ -57,7 +57,10 @@ const CHECKLIST_DONE = [
 ]
 const CHECKLIST_LEFT = ["Bank statements ·3mo", "Degree certificate", "Cover letter"]
 
-export function LandingClient() {
+export function LandingClient({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+  /* Signed-in visitors still get the landing page; the calls to action point them home instead. */
+  const ctaHref = isAuthenticated ? "/dashboard" : "/register"
+
   return (
     <div className="bg-background text-foreground">
       {/* Nav */}
@@ -77,17 +80,17 @@ export function LandingClient() {
             Questions
           </a>
           <Link
-            href="/register"
+            href={ctaHref}
             className="border border-primary text-primary rounded-lg px-3.5 py-2 text-[12.5px] font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors"
           >
-            Start tracking — free
+            {isAuthenticated ? "Go to dashboard" : "Start tracking — free"}
           </Link>
         </nav>
         <Link
-          href="/register"
+          href={ctaHref}
           className="md:hidden border border-primary text-primary rounded-lg px-3 py-1.5 text-xs font-medium"
         >
-          Start
+          {isAuthenticated ? "Dashboard" : "Start"}
         </Link>
       </header>
 
@@ -106,17 +109,26 @@ export function LandingClient() {
           </p>
           <div className="flex flex-wrap gap-3 pt-1.5">
             <Link
-              href="/register"
+              href={ctaHref}
               className="border border-primary text-primary rounded-lg px-5 py-3 text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors"
             >
-              Track my application
+              {isAuthenticated ? "Open my dashboard" : "Track my application"}
             </Link>
-            <Link
-              href="/login"
-              className="border border-outline-variant text-on-surface-variant rounded-lg px-5 py-3 text-sm hover:bg-surface-container transition-colors"
-            >
-              Sign in
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/new"
+                className="border border-outline-variant text-on-surface-variant rounded-lg px-5 py-3 text-sm hover:bg-surface-container transition-colors"
+              >
+                New application
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="border border-outline-variant text-on-surface-variant rounded-lg px-5 py-3 text-sm hover:bg-surface-container transition-colors"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
           <div className="flex flex-wrap gap-6 pt-3 font-mono text-xs text-on-surface-variant">
             <span>52 countries</span>
@@ -231,10 +243,10 @@ export function LandingClient() {
         </div>
         <div className="flex flex-col gap-3 items-start md:items-end shrink-0">
           <Link
-            href="/register"
+            href={ctaHref}
             className="border border-accent-400 text-neutral-100 rounded-lg px-6 py-3 text-sm font-medium hover:bg-white/10 transition-colors"
           >
-            Create a free tracker
+            {isAuthenticated ? "Back to my tracker" : "Create a free tracker"}
           </Link>
           <span className="font-mono text-xs text-accent-300">We never charge for reminders</span>
         </div>
