@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/sidebar"
 import { Logo } from "@/components/logo"
 import { ThemeToggleIcon } from "@/components/theme-toggle"
 import { WorldMap } from "@/components/world-map"
+import { countryCoordinates } from "@/lib/country-coordinates"
 import { DocumentChecklist } from "@/components/document-checklist"
 import { DocumentModal } from "@/components/document-modal"
 import { resolveCategories } from "@/lib/categories"
@@ -171,6 +172,13 @@ function ApplicationHeader({
 }) {
   const outstanding = application.totalDocuments - application.uploadedDocuments
 
+  /* No point for an unrecognised country name — better a bare map than a pin
+     dropped at 0,0, which reads as the Gulf of Guinea. */
+  const point = countryCoordinates(application.destinationCountry)
+  const destinationMarker = point
+    ? `${point[0]},${point[1]}:${(application.destinationCountry ?? "").toUpperCase()}`
+    : null
+
   return (
     <section className="mb-stack-lg">
       <div className="flex flex-wrap justify-between items-start mb-stack-md gap-4">
@@ -255,7 +263,7 @@ function ApplicationHeader({
               land="var(--color-neutral-800)"
               edge="var(--color-outline-variant)"
               accent="var(--primary)"
-              markers={`0,0:${(application.destinationCountry ?? "").slice(0, 3).toUpperCase()}`}
+              markers={destinationMarker ?? undefined}
             />
           </div>
           <div className="grid grid-cols-2 border-t border-outline-variant mt-auto">

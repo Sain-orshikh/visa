@@ -12,6 +12,7 @@ type WorldMapElementProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLE
   markers?: string
   routes?: string
   draw?: string
+  spark?: string
 }
 
 declare module "react" {

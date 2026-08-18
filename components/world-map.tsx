@@ -15,6 +15,8 @@ interface WorldMapProps {
   markers?: string
   routes?: string
   draw?: boolean
+  /** Send a glowing light travelling along each route. */
+  spark?: boolean
   style?: CSSProperties
   className?: string
 }
@@ -37,6 +39,7 @@ export function WorldMap({
   markers,
   routes,
   draw,
+  spark,
   style,
   className,
 }: WorldMapProps) {
@@ -55,6 +58,7 @@ export function WorldMap({
         markers={markers}
         routes={routes}
         draw={draw ? "on" : undefined}
+        spark={spark ? "on" : undefined}
         style={style}
         className={className}
       />

@@ -7,6 +7,7 @@
 //   markers = "lon,lat:Label;…"
 //   routes  = "lon,lat>lon,lat;…"
 //   draw = "on"                  (animate route arcs drawing in)
+//   spark = "on"                 (send a glowing light travelling along each route)
 (function () {
   const ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json';
   let atlasData = null;
@@ -103,7 +104,7 @@
       const path = d3.geoPath(proj);
 
       const parts = [];
-      parts.push(`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible">`);
+      parts.push(`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns:xlink="http://www.w3.org/1999/xlink" style="display:block;overflow:visible">`);
 
       if (this.getAttribute('graticule') === 'on') {
         const g = d3.geoGraticule10();
@@ -129,15 +130,40 @@
 
       // routes as great-circle arcs
       const routes = (this.getAttribute('routes') || '').split(';').filter(Boolean);
+      const spark = this.getAttribute('spark') === 'on';
+      const uid = (this._uid = this._uid || Math.random().toString(36).slice(2, 8));
+      if (spark && routes.length) {
+        // Soft halo for the travelling light — one filter reused by every route.
+        parts.push(`<defs><filter id="wm-glow-${uid}" x="-120%" y="-120%" width="340%" height="340%">`
+          + '<feGaussianBlur stdDeviation="3.2" result="b"/>'
+          + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+          + '</filter></defs>');
+      }
       routes.forEach((seg, i) => {
         const [a, b] = seg.split('>').map((s) => s.split(',').map(Number));
         if (!a || !b || a.length < 2 || b.length < 2) return;
         const line = { type: 'LineString', coordinates: d3.range(0, 1.001, 0.02).map((t) => d3.geoInterpolate(a, b)(t)) };
         const d = path(line);
-        const anim = this.getAttribute('draw') === 'on'
+        const drawing = this.getAttribute('draw') === 'on';
+        const anim = drawing
           ? ` stroke-dasharray="1200" stroke-dashoffset="1200" style="animation:wm-draw 2.6s ${(i * 0.5).toFixed(2)}s cubic-bezier(.4,0,.2,1) forwards"`
           : '';
-        parts.push(`<path d="${d}" fill="none" stroke="${accent}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"${anim}/>`);
+        const routeId = `wm-route-${uid}-${i}`;
+        parts.push(`<path id="${routeId}" d="${d}" fill="none" stroke="${accent}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"${anim}/>`);
+
+        if (spark) {
+          // Start once the arc has finished drawing itself, then loop, staggered
+          // per route so the lights never travel in lockstep.
+          const begin = ((drawing ? 2.6 : 0.4) + i * 1.5).toFixed(2);
+          const dur = '5.2s';
+          const motion = (extra) =>
+            `<animateMotion dur="${dur}" begin="${begin}s" repeatCount="indefinite"${extra || ''}>`
+            + `<mpath href="#${routeId}" xlink:href="#${routeId}"/></animateMotion>`;
+          const fade = `<animate attributeName="opacity" dur="${dur}" begin="${begin}s" repeatCount="indefinite"`
+            + ' values="0;1;1;0" keyTimes="0;0.12;0.85;1"/>';
+          parts.push(`<circle r="5.5" fill="${accent}" opacity="0" filter="url(#wm-glow-${uid})">${motion()}${fade}</circle>`);
+          parts.push(`<circle r="1.9" fill="#ffffff" opacity="0">${motion()}${fade}</circle>`);
+        }
       });
 
       // markers
@@ -151,7 +177,7 @@
         parts.push(`<circle cx="${x}" cy="${y}" r="14" fill="${accent}" opacity="0.14" style="animation:wm-pulse 3.2s ${(i * 0.4).toFixed(2)}s ease-out infinite"/>`);
         parts.push(`<circle cx="${x}" cy="${y}" r="3.4" fill="${accent}"/>`);
         if (label) {
-          parts.push(`<text x="${x + 9}" y="${y + 3.5}" fill="#cfd3e5" font-family="ui-monospace,Menlo,monospace" font-size="10" letter-spacing="0.06em">${label}</text>`);
+          parts.push(`<text x="${x + 9}" y="${y + 3.5}" fill="currentColor" font-family="ui-monospace,Menlo,monospace" font-size="10" letter-spacing="0.06em">${label}</text>`);
         }
       });
       parts.push('</svg>');

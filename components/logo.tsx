@@ -1,3 +1,5 @@
+import Image from "next/image"
+
 interface LogoProps {
   /** Rendered box in px — the mark is square. */
   size?: number
@@ -5,28 +7,20 @@ interface LogoProps {
 }
 
 /**
- * The Passage mark — a ring with a gap: a border you pass through. The gap
- * sits at the top-left so the mark still resolves at 16px (favicon size).
+ * The Passage mark, from public/logo.webp. Square source, so width and height
+ * track `size` together; decorative everywhere it appears next to the wordmark,
+ * hence the empty alt.
  */
 export function Logo({ size = 40, className = '' }: LogoProps) {
   return (
-    <svg
+    <Image
+      src="/logo.webp"
+      alt=""
       width={size}
       height={size}
-      viewBox="0 0 30 30"
-      aria-hidden="true"
-      className={`shrink-0 ${className}`}
-    >
-      <circle
-        cx="15"
-        cy="15"
-        r="12"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2.6"
-        strokeDasharray="56 19"
-        transform="rotate(-58 15 15)"
-      />
-    </svg>
+      priority
+      className={`shrink-0 object-contain ${className}`}
+      style={{ width: size, height: size }}
+    />
   )
 }

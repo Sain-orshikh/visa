@@ -62,7 +62,10 @@ export function LandingClient({ isAuthenticated = false }: { isAuthenticated?: b
   const ctaHref = isAuthenticated ? "/dashboard" : "/register"
 
   return (
-    <div className="bg-background text-foreground">
+    /* The landing page is dark by design — the `dark` class re-declares the
+       theme tokens for this subtree, so toggling the theme in the dashboard
+       leaves the marketing page looking the way it was drawn. */
+    <div className="dark min-h-screen bg-background text-foreground">
       {/* Nav */}
       <header className="flex items-center justify-between gap-4 px-margin-mobile md:px-margin-desktop py-4 border-b border-outline-variant">
         <div className="flex items-center gap-2.5">
@@ -149,6 +152,8 @@ export function LandingClient({ isAuthenticated = false }: { isAuthenticated?: b
               accent="var(--primary)"
               markers="-9.1,38.7:LISBON;13.4,52.5:BERLIN;139.7,35.7:TOKYO"
               routes="-9.1,38.7>13.4,52.5;13.4,52.5>139.7,35.7"
+              draw
+              spark
             />
           </div>
           <div className="grid grid-cols-3 border-t border-outline-variant">
