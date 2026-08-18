@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { SupportClient } from "@/components/support-client"
 
 export const metadata: Metadata = {
-  title: "Support — Visa Tracker",
+  title: "Support — Passage",
 }
 
 export default async function SupportPage() {

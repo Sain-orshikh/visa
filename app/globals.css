@@ -6,7 +6,7 @@
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   /* shadcn base tokens (kept for component compatibility) */
@@ -29,7 +29,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* "Ledger & Ink" surface + role tokens */
+  /* Surface + role tokens (Material-ish naming kept for compatibility with
+     existing component classNames — only the values below change) */
   --color-primary-container: var(--primary-container);
   --color-on-primary: var(--on-primary);
   --color-on-primary-container: var(--on-primary-container);
@@ -49,7 +50,9 @@
   --color-outline: var(--outline);
   --color-outline-variant: var(--outline-variant);
 
-  /* Status roles — each state gets its own colour, none of them borrowed */
+  /* Status roles — Nocturne is a mono scheme, so these lean on the accent
+     ramp rather than a second hue. Only "danger" breaks from the accent,
+     and stays desaturated (anchored to the design's own upload-failed chip). */
   --color-error: var(--error);
   --color-error-container: var(--error-container);
   --color-on-error: var(--on-error);
@@ -65,8 +68,36 @@
   --color-stamp-container: var(--stamp-container);
   --color-on-stamp-container: var(--on-stamp-container);
 
+  /* The accent's full tonal ramp — for the spots that need one exact step
+     (chips, deadline rails, tinted fills) rather than a role. Same values
+     in both themes; only which end reads as "ground" changes. */
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+  /* Deck/landing section-divider ground — saturation as presence, spent
+     only on the pricing/stat band. Interface colors stay desaturated. */
+  --color-section: #262a60;
+  --color-section-glow: #353b80;
+  --color-section-ghost: #4c5397;
+
+  --radius-sm: 0.25rem;
   --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius-xl: 0.875rem;
 
   --spacing-gutter: 24px;
   --spacing-stack-sm: 8px;
@@ -78,194 +109,193 @@
 }
 
 /* ---------------------------------------------------------------
-   Light — ledger paper. The page sits on tinted stock and cards are
-   white, so a card genuinely lifts instead of dissolving into it.
+   Light — the accent ramp's light end as ground, mirroring how Nocturne's
+   dark theme uses its dark end: light steps (100-300) for tinted fills,
+   500 as the accent's base, dark steps (600-800) for accent-colored text
+   and icons on this ground.
    --------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
-  --background: #eef1f6;
-  --foreground: #101828;
-  --card: #ffffff;
-  --card-foreground: #101828;
-  --popover: #ffffff;
-  --popover-foreground: #101828;
-  --primary: #1b3a6b;
-  --primary-foreground: #ffffff;
-  --secondary: #4a5568;
-  --secondary-foreground: #ffffff;
-  --muted: #e7ecf4;
-  --muted-foreground: #4a5568;
-  --accent: #dce3ee;
-  --accent-foreground: #101828;
-  --destructive: #a32b23;
-  --border: #d4dbe6;
-  --input: #d4dbe6;
-  --ring: #1b3a6b;
+  --background: #eef0fa;
+  --foreground: #24262f;
+  --card: #f8f9fe;
+  --card-foreground: #24262f;
+  --popover: #f8f9fe;
+  --popover-foreground: #24262f;
+  --primary: #796cbf;
+  --primary-foreground: #f8f9fe;
+  --secondary: #75798c;
+  --secondary-foreground: #f8f9fe;
+  --muted: #e4e7f5;
+  --muted-foreground: #595d6c;
+  --accent: #e7e5fe;
+  --accent-foreground: #423a6a;
+  --destructive: #a35d63;
+  --border: #cfd3e5;
+  --input: #cfd3e5;
+  --ring: #796cbf;
   --radius: 0.5rem;
 
-  --primary-container: #2e5596;
-  --on-primary: #ffffff;
-  --on-primary-container: #ffffff;
-  --primary-fixed: #dbe4f3;
-  --primary-fixed-dim: #b8c9e6;
-  --on-secondary: #ffffff;
-  --on-surface: #101828;
-  --on-surface-variant: #4a5568;
-  --on-background: #101828;
+  --primary-container: #e7e5fe;
+  --on-primary: #f8f9fe;
+  --on-primary-container: #423a6a;
+  --primary-fixed: #d2cefd;
+  --primary-fixed-dim: #b5abfc;
+  --on-secondary: #f8f9fe;
+  --on-surface: #24262f;
+  --on-surface-variant: #595d6c;
+  --on-background: #24262f;
 
-  --surface: #ffffff;
-  --surface-bright: #ffffff;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f6f8fb;
-  --surface-container: #e7ecf4;
-  --surface-container-high: #dce3ee;
-  --surface-container-highest: #cfd9e8;
-  --outline: #697285;
-  --outline-variant: #d4dbe6;
+  --surface: #f8f9fe;
+  --surface-bright: #fbfbff;
+  --surface-container-lowest: #fdfdff;
+  --surface-container-low: #f8f9fe;
+  --surface-container: #eef0fa;
+  --surface-container-high: #e4e7f5;
+  --surface-container-highest: #cfd3e5;
+  --outline: #75798c;
+  --outline-variant: #cfd3e5;
 
-  /* Oxblood — reserved for genuinely wrong: overdue, failure. */
-  --error: #a32b23;
-  --error-container: #fbe3e0;
-  --on-error: #ffffff;
-  --on-error-container: #7a1d17;
-  /* Stamp amber — the ordinary "not done yet" state. Not an error. */
-  --warning: #8a5a00;
-  --warning-container: #fcefd4;
-  --on-warning-container: #6b4400;
-  /* Entry green — cleared, on file. */
-  --success: #1f6f4a;
-  --success-container: #ddf0e5;
-  --on-success-container: #145135;
-  /* Selected surface — an explicit token beats an opacity hack, and it
-     lets the selected state be tuned per theme. */
-  --selected: #e6ecf7;
-  /* Stamp violet — the signature accent, spent only on the MRZ band. */
-  --stamp: #6b4a9e;
-  --stamp-container: #ece5f7;
-  --on-stamp-container: #4c3175;
+  /* Danger — desaturated, anchored to the upload-failed swatch's own hue. */
+  --error: #a35d63;
+  --error-container: #f3d4d6;
+  --on-error: #f8f9fe;
+  --on-error-container: #573236;
+  --warning: #5d5294;
+  --warning-container: #e7e5fe;
+  --on-warning-container: #423a6a;
+  --success: #5d5294;
+  --success-container: #e7e5fe;
+  --on-success-container: #423a6a;
+  --selected: #e7e5fe;
+  --stamp: #796cbf;
+  --stamp-container: #e7e5fe;
+  --on-stamp-container: #423a6a;
 }
 
 /* ---------------------------------------------------------------
-   Dark — ink on night. Same roles, re-pitched so contrast holds.
+   Dark — Nocturne as designed: a near-neutral blue-grey ground with the
+   accent ramp's dark end (700-900) for tinted fills and hovers, 500 as
+   the base, light steps (100-300) for text on those tints.
    Applies on system preference and via an explicit .dark class.
    --------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
 
-    --background: #0d1420;
-    --foreground: #e6ebf4;
-    --card: #161f2f;
-    --card-foreground: #e6ebf4;
-    --popover: #161f2f;
-    --popover-foreground: #e6ebf4;
-    --primary: #a9c4ee;
-    --primary-foreground: #0d1420;
-    --secondary: #9aa7bd;
-    --secondary-foreground: #0d1420;
-    --muted: #1f2a3d;
-    --muted-foreground: #9aa7bd;
-    --accent: #26334a;
-    --accent-foreground: #e6ebf4;
-    --destructive: #f2b8b3;
-    --border: #2b374d;
-    --input: #2b374d;
-    --ring: #a9c4ee;
+    --background: #161826;
+    --foreground: #e9e9ed;
+    --card: #232532;
+    --card-foreground: #e9e9ed;
+    --popover: #232532;
+    --popover-foreground: #e9e9ed;
+    --primary: #9184d9;
+    --primary-foreground: #161826;
+    --secondary: #9397ab;
+    --secondary-foreground: #161826;
+    --muted: #1b1d2b;
+    --muted-foreground: #9397ab;
+    --accent: #2b2741;
+    --accent-foreground: #e9e9ed;
+    --destructive: #e3aeb2;
+    --border: #3f424d;
+    --input: #3f424d;
+    --ring: #9184d9;
 
-    --primary-container: #274470;
-    --on-primary: #0d1420;
-    --on-primary-container: #d6e2f8;
-    --primary-fixed: #274470;
-    --primary-fixed-dim: #1c3357;
-    --on-secondary: #0d1420;
-    --on-surface: #e6ebf4;
-    --on-surface-variant: #9aa7bd;
-    --on-background: #e6ebf4;
+    --primary-container: #2b2741;
+    --on-primary: #161826;
+    --on-primary-container: #f5f4ff;
+    --primary-fixed: #423a6a;
+    --primary-fixed-dim: #2b2741;
+    --on-secondary: #161826;
+    --on-surface: #e9e9ed;
+    --on-surface-variant: #9397ab;
+    --on-background: #e9e9ed;
 
-    --surface: #161f2f;
-    --surface-bright: #1f2a3d;
-    --surface-container-lowest: #111927;
-    --surface-container-low: #161f2f;
-    --surface-container: #1f2a3d;
-    --surface-container-high: #26334a;
-    --surface-container-highest: #2f3e58;
-    --outline: #7a879e;
-    --outline-variant: #2b374d;
+    --surface: #232532;
+    --surface-bright: #292b31;
+    --surface-container-lowest: #13151f;
+    --surface-container-low: #161826;
+    --surface-container: #1b1d2b;
+    --surface-container-high: #232532;
+    --surface-container-highest: #292b31;
+    --outline: #75798c;
+    --outline-variant: #3f424d;
 
-    --error: #f2b8b3;
-    --error-container: #4a1512;
-    --on-error: #0d1420;
-    --on-error-container: #ffdad6;
-    --warning: #f0c26a;
-    --warning-container: #453100;
-    --on-warning-container: #f8e2b4;
-    --success: #86d6aa;
-    --success-container: #123c28;
-    --on-success-container: #c6ebd6;
-    --selected: #23324e;
-    --stamp: #c4aaf0;
-    --stamp-container: #2f2148;
-    --on-stamp-container: #e2d4f8;
+    --error: #e3aeb2;
+    --error-container: #3f2f36;
+    --on-error: #161826;
+    --on-error-container: #f0d7d9;
+    --warning: #d2cefd;
+    --warning-container: #2b2741;
+    --on-warning-container: #d2cefd;
+    --success: #b5abfc;
+    --success-container: #423a6a;
+    --on-success-container: #f5f4ff;
+    --selected: #2b2741;
+    --stamp: #9184d9;
+    --stamp-container: #423a6a;
+    --on-stamp-container: #f5f4ff;
   }
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0d1420;
-  --foreground: #e6ebf4;
-  --card: #161f2f;
-  --card-foreground: #e6ebf4;
-  --popover: #161f2f;
-  --popover-foreground: #e6ebf4;
-  --primary: #a9c4ee;
-  --primary-foreground: #0d1420;
-  --secondary: #9aa7bd;
-  --secondary-foreground: #0d1420;
-  --muted: #1f2a3d;
-  --muted-foreground: #9aa7bd;
-  --accent: #26334a;
-  --accent-foreground: #e6ebf4;
-  --destructive: #f2b8b3;
-  --border: #2b374d;
-  --input: #2b374d;
-  --ring: #a9c4ee;
+  --background: #161826;
+  --foreground: #e9e9ed;
+  --card: #232532;
+  --card-foreground: #e9e9ed;
+  --popover: #232532;
+  --popover-foreground: #e9e9ed;
+  --primary: #9184d9;
+  --primary-foreground: #161826;
+  --secondary: #9397ab;
+  --secondary-foreground: #161826;
+  --muted: #1b1d2b;
+  --muted-foreground: #9397ab;
+  --accent: #2b2741;
+  --accent-foreground: #e9e9ed;
+  --destructive: #e3aeb2;
+  --border: #3f424d;
+  --input: #3f424d;
+  --ring: #9184d9;
 
-  --primary-container: #274470;
-  --on-primary: #0d1420;
-  --on-primary-container: #d6e2f8;
-  --primary-fixed: #274470;
-  --primary-fixed-dim: #1c3357;
-  --on-secondary: #0d1420;
-  --on-surface: #e6ebf4;
-  --on-surface-variant: #9aa7bd;
-  --on-background: #e6ebf4;
+  --primary-container: #2b2741;
+  --on-primary: #161826;
+  --on-primary-container: #f5f4ff;
+  --primary-fixed: #423a6a;
+  --primary-fixed-dim: #2b2741;
+  --on-secondary: #161826;
+  --on-surface: #e9e9ed;
+  --on-surface-variant: #9397ab;
+  --on-background: #e9e9ed;
 
-  --surface: #161f2f;
-  --surface-bright: #1f2a3d;
-  --surface-container-lowest: #111927;
-  --surface-container-low: #161f2f;
-  --surface-container: #1f2a3d;
-  --surface-container-high: #26334a;
-  --surface-container-highest: #2f3e58;
-  --outline: #7a879e;
-  --outline-variant: #2b374d;
+  --surface: #232532;
+  --surface-bright: #292b31;
+  --surface-container-lowest: #13151f;
+  --surface-container-low: #161826;
+  --surface-container: #1b1d2b;
+  --surface-container-high: #232532;
+  --surface-container-highest: #292b31;
+  --outline: #75798c;
+  --outline-variant: #3f424d;
 
-  --error: #f2b8b3;
-  --error-container: #4a1512;
-  --on-error: #0d1420;
-  --on-error-container: #ffdad6;
-  --warning: #f0c26a;
-  --warning-container: #453100;
-  --on-warning-container: #f8e2b4;
-  --success: #86d6aa;
-  --success-container: #123c28;
-  --on-success-container: #c6ebd6;
-  --selected: #23324e;
-  --stamp: #c4aaf0;
-  --stamp-container: #2f2148;
-  --on-stamp-container: #e2d4f8;
+  --error: #e3aeb2;
+  --error-container: #3f2f36;
+  --on-error: #161826;
+  --on-error-container: #f0d7d9;
+  --warning: #d2cefd;
+  --warning-container: #2b2741;
+  --on-warning-container: #d2cefd;
+  --success: #b5abfc;
+  --success-container: #423a6a;
+  --on-success-container: #f5f4ff;
+  --selected: #2b2741;
+  --stamp: #9184d9;
+  --stamp-container: #423a6a;
+  --on-stamp-container: #f5f4ff;
 }
 
 @layer base {
@@ -275,9 +305,18 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* The display face is set tight and heavy; it should never track like body copy. */
-  .font-display {
-    letter-spacing: -0.022em;
+  /* Rules fade to transparent at both ends rather than stopping cleanly —
+     the Nocturne signature. Freestanding rules fade; box outlines and
+     in-control separators stay solid. */
+  .hr-fade {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-outline-variant) 48px,
+      var(--color-outline-variant) calc(100% - 48px),
+      transparent
+    );
   }
   /* Every clickable control gets a pointer and a consistent hover animation
      by default. Components that need a different timing (e.g. the 500ms
@@ -297,20 +336,6 @@
     transition-property: color, background-color, border-color, box-shadow, opacity, transform;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
-  }
-}
-
-@layer components {
-  /* Machine-readable zone — the signature device, lifted from the bottom
-     of a passport data page. Monospace, letter-spaced, chevron-padded. */
-  .mrz {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.75;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
   }
 }
 

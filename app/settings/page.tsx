@@ -4,7 +4,7 @@ import { getCurrentUser, toPublicUser } from "@/lib/auth"
 import { SettingsClient } from "@/components/settings-client"
 
 export const metadata: Metadata = {
-  title: "Settings — Visa Tracker",
+  title: "Settings — Passage",
 }
 
 export default async function SettingsPage() {

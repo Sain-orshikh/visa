@@ -1,6 +1,6 @@
 "use client"
 
-import { Monitor, Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "@phosphor-icons/react"
 import { useTheme, type Theme } from "@/components/theme-provider"
 
 const OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
@@ -10,8 +10,8 @@ const OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
 ]
 
 /**
- * Compact single button for the sidebar footer and mobile bar. Flips straight
- * between light and dark — the explicit three-way choice lives in Settings.
+ * Compact single button for standalone spots. Flips straight between light
+ * and dark — the explicit three-way choice lives in Settings / the sidebar.
  */
 export function ThemeToggleButton({ className = "" }: { className?: string }) {
   const { resolved, setTheme } = useTheme()
@@ -25,9 +25,9 @@ export function ThemeToggleButton({ className = "" }: { className?: string }) {
       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors text-left ${className}`}
     >
       {resolved === "dark" ? (
-        <Sun className="w-[18px] h-[18px] flex-shrink-0" />
+        <Sun className="w-[18px] h-[18px] shrink-0" />
       ) : (
-        <Moon className="w-[18px] h-[18px] flex-shrink-0" />
+        <Moon className="w-[18px] h-[18px] shrink-0" />
       )}
       <span className="text-sm">{resolved === "dark" ? "Light mode" : "Dark mode"}</span>
     </button>
@@ -50,15 +50,21 @@ export function ThemeToggleIcon({ className = "" }: { className?: string }) {
   )
 }
 
-/** The full choice, including "follow the system". Used on the Settings page. */
-export function ThemeSegmentedControl() {
+/**
+ * The full choice, including "follow the system". `compact` renders the
+ * three-way segmented control that fits the sidebar footer's width (icon
+ * only); the default renders icon + label for Settings.
+ */
+export function ThemeSegmentedControl({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme()
 
   return (
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      className="inline-flex gap-1 p-1 rounded-lg bg-surface-container border border-outline-variant"
+      className={`inline-flex gap-1 p-1 rounded-lg bg-surface-container border border-outline-variant ${
+        compact ? "w-full" : ""
+      }`}
     >
       {OPTIONS.map(({ value, label, Icon }) => {
         const active = theme === value
@@ -67,15 +73,18 @@ export function ThemeSegmentedControl() {
             key={value}
             role="radio"
             aria-checked={active}
+            title={label}
             onClick={() => setTheme(value)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-md text-sm transition-colors ${
+            className={`flex items-center justify-center gap-2 rounded-md text-sm transition-colors ${
+              compact ? "flex-1 py-1.5" : "px-3.5 py-2"
+            } ${
               active
-                ? "bg-surface text-on-surface font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.08)]"
+                ? "border border-primary-fixed bg-primary-container text-on-primary-container font-medium"
                 : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             <Icon className="w-4 h-4" />
-            {label}
+            {!compact && label}
           </button>
         )
       })}

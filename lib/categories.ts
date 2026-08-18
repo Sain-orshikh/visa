@@ -1,4 +1,4 @@
-import { FileText, IdCard, Landmark, Plane, Tag } from "lucide-react"
+import { FileText, IdentificationCard, Bank, Airplane, Tag } from "@phosphor-icons/react/dist/ssr"
 import type { UserCategory } from "./types"
 
 export interface CategoryOption {
@@ -14,9 +14,9 @@ export interface CategoryOption {
  * it's the fallback bucket and always sorts last, see `resolveCategories`.
  */
 export const BUILT_IN_CATEGORIES: CategoryOption[] = [
-  { key: "identity", label: "Identity", Icon: IdCard, builtIn: true },
-  { key: "financial", label: "Financial", Icon: Landmark, builtIn: true },
-  { key: "travel", label: "Travel", Icon: Plane, builtIn: true },
+  { key: "identity", label: "Identity", Icon: IdentificationCard, builtIn: true },
+  { key: "financial", label: "Financial", Icon: Bank, builtIn: true },
+  { key: "travel", label: "Travel", Icon: Airplane, builtIn: true },
 ]
 
 export const OTHER_CATEGORY: CategoryOption = {

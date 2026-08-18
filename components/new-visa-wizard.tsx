@@ -6,22 +6,22 @@ import {
   ArrowLeft,
   ArrowRight,
   Briefcase,
-  Calendar as CalendarToday,
+  CalendarBlank,
   Check,
   GraduationCap,
-  Luggage,
+  Suitcase,
   Plus,
-  Search,
+  MagnifyingGlass,
   X,
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { api } from "@/lib/api"
 import type { VisaType } from "@/lib/types"
 import { COUNTRIES } from "@/lib/countries"
 
 const STEPS = ["Destination", "Details", "Documents", "Review"]
 
-const VISA_OPTIONS: { value: VisaType; label: string; description: string; Icon: typeof Luggage }[] = [
-  { value: "tourist", label: "Tourist", description: "Leisure and short visits", Icon: Luggage },
+const VISA_OPTIONS: { value: VisaType; label: string; description: string; Icon: typeof Suitcase }[] = [
+  { value: "tourist", label: "Tourist", description: "Leisure and short visits", Icon: Suitcase },
   { value: "work", label: "Business", description: "Meetings and work", Icon: Briefcase },
   { value: "student", label: "Student", description: "Study programs", Icon: GraduationCap },
 ]
@@ -172,7 +172,7 @@ export function NewVisaWizard() {
           <ArrowLeft className="w-5 h-5" />
           <span className="text-xs font-semibold hidden sm:inline">Cancel application</span>
         </button>
-        <span className="font-display text-lg font-extrabold text-primary">Visa Tracker</span>
+        <span className="font-display text-lg font-medium tracking-tight text-on-background">Passage</span>
         <div className="w-24" />
       </header>
 
@@ -197,18 +197,18 @@ export function NewVisaWizard() {
                 return (
                   <li key={label} className="flex-1 flex flex-col items-center gap-2">
                     <span
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border transition-colors ${
                         active
-                          ? "bg-primary text-on-primary border-primary"
+                          ? "bg-primary-container text-on-primary-container border-primary-fixed"
                           : done
-                            ? "bg-primary text-on-primary border-primary"
+                            ? "bg-primary-container text-on-primary-container border-primary-fixed"
                             : "bg-surface text-on-surface-variant border-outline-variant"
                       }`}
                     >
-                      {done ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
+                      {done ? <Check className="w-4 h-4" weight="bold" /> : i + 1}
                     </span>
                     <span
-                      className={`font-mono text-[10px] uppercase tracking-[0.12em] text-center ${
+                      className={`font-mono text-[10px] uppercase tracking-widest text-center ${
                         active || done ? "text-primary font-medium" : "text-on-surface-variant"
                       }`}
                     >
@@ -260,7 +260,7 @@ export function NewVisaWizard() {
               <>
                 <Field label="Destination country" htmlFor="destination">
                   <div className="relative" ref={countryContainerRef}>
-                    <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                    <MagnifyingGlass className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
                     <input
                       id="destination"
                       type="text"
@@ -324,7 +324,7 @@ export function NewVisaWizard() {
 
                 <Field label="Planned travel date" htmlFor="travel_date">
                   <div className="relative">
-                    <CalendarToday className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                    <CalendarBlank className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
                     <input
                       id="travel_date"
                       type="date"
@@ -390,7 +390,7 @@ export function NewVisaWizard() {
                               active ? "bg-primary border-primary text-on-primary" : "border-outline"
                             }`}
                           >
-                            {active && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                            {active && <Check className="w-3.5 h-3.5" weight="bold" />}
                           </span>
                           <span className="text-sm text-on-surface">{name}</span>
                         </button>
@@ -420,7 +420,7 @@ export function NewVisaWizard() {
                             aria-hidden="true"
                             className="w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 bg-primary border-primary text-on-primary"
                           >
-                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                            <Check className="w-3.5 h-3.5" weight="bold" />
                           </span>
                           <span className="text-sm text-on-surface flex-1">{doc.name}</span>
                           <button
@@ -518,7 +518,7 @@ export function NewVisaWizard() {
               <button
                 onClick={() => canProceed() && setStep((s) => s + 1)}
                 disabled={!canProceed()}
-                className="px-6 py-3 text-sm font-semibold text-on-primary bg-primary rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 text-sm font-medium border border-primary text-primary rounded-lg hover:bg-primary/12 active:bg-primary/20 transition-colors flex items-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />
@@ -527,10 +527,10 @@ export function NewVisaWizard() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="px-6 py-3 text-sm font-semibold text-on-primary bg-primary rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-60"
+                className="px-6 py-3 text-sm font-medium border border-primary text-primary rounded-lg hover:bg-primary/12 active:bg-primary/20 transition-colors flex items-center gap-2 disabled:opacity-45"
               >
                 {saving ? "Creating…" : "Create application"}
-                <Check className="w-4 h-4" strokeWidth={3} />
+                <Check className="w-4 h-4" weight="bold" />
               </button>
             )}
           </div>
@@ -546,7 +546,7 @@ function StepHeader({ eyebrow, title, subtitle }: { eyebrow: string; title: stri
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-2">
         {eyebrow}
       </p>
-      <h1 className="font-display text-[32px] leading-[1.15] font-extrabold text-on-background mb-stack-sm text-balance">
+      <h1 className="font-display text-[32px] leading-[1.15] font-medium tracking-tight text-on-background mb-stack-sm text-balance">
         {title}
       </h1>
       <p className="text-base text-on-surface-variant text-pretty">{subtitle}</p>

@@ -5,19 +5,19 @@ import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import {
   Archive,
-  ArchiveRestore,
+  ArrowCounterClockwise,
   Check,
   Cloud,
   HardDrive,
-  Loader2,
+  CircleNotch,
   Lock,
   Plus,
-  Server,
+  Database,
   Tag,
-  Trash2,
-  TriangleAlert,
+  Trash,
+  Warning,
   X,
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { PageShell, SectionCard } from "@/components/page-shell"
 import { ThemeSegmentedControl } from "@/components/theme-toggle"
 import { api, fetcher, type ApplicationSummary } from "@/lib/api"
@@ -30,7 +30,7 @@ const FIELD =
 const LABEL = "text-sm font-semibold text-on-surface"
 
 const PRIMARY_BUTTON =
-  "px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-container transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+  "px-5 py-2.5 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors disabled:opacity-45 disabled:cursor-not-allowed inline-flex items-center gap-2"
 
 /** Inline result line shared by every form on the page. */
 function Feedback({ error, success }: { error?: string | null; success?: string | null }) {
@@ -40,7 +40,7 @@ function Feedback({ error, success }: { error?: string | null; success?: string 
         className="text-sm text-on-error-container bg-error-container rounded-lg px-3 py-2 flex items-start gap-2"
         role="alert"
       >
-        <TriangleAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <Warning className="w-4 h-4 mt-0.5 flex-shrink-0" />
         {error}
       </p>
     )
@@ -148,7 +148,7 @@ function CategoriesSection() {
                 className="p-0.5 rounded hover:bg-primary/15 transition-colors disabled:opacity-50"
               >
                 {removingId === category.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <CircleNotch className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <X className="w-3.5 h-3.5" />
                 )}
@@ -167,7 +167,7 @@ function CategoriesSection() {
             className={FIELD}
           />
           <button type="submit" disabled={saving || !label.trim()} className={`${PRIMARY_BUTTON} shrink-0`}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {saving ? <CircleNotch className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Add
           </button>
         </form>
@@ -187,9 +187,9 @@ function CategoriesSection() {
 
 const PROVIDER_COPY: Record<StorageProvider, { label: string; blurb: string; Icon: typeof Cloud }> = {
   app: {
-    label: "Visa Tracker storage",
+    label: "Passage storage",
     blurb: "Files are uploaded to this app's own storage. Nothing to set up.",
-    Icon: Server,
+    Icon: Database,
   },
   cloudinary: {
     label: "Your own Cloudinary",
@@ -198,7 +198,7 @@ const PROVIDER_COPY: Record<StorageProvider, { label: string; blurb: string; Ico
   },
   "google-drive": {
     label: "Your own Google Drive",
-    blurb: "Files land in a Visa Tracker folder in your Drive, private to your account.",
+    blurb: "Files land in a Passage folder in your Drive, private to your account.",
     Icon: HardDrive,
   },
 }
@@ -314,7 +314,7 @@ function StorageSection() {
     >
       {isLoading || !storage ? (
         <p className="text-sm text-on-surface-variant flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <CircleNotch className="w-4 h-4 animate-spin" />
           Loading&hellip;
         </p>
       ) : (
@@ -366,6 +366,14 @@ function StorageSection() {
                     </span>
                     <span className="block text-xs text-on-surface-variant mt-0.5">{blurb}</span>
 
+                    {!enabled && (
+                      <span className="block text-xs text-on-surface-variant mt-1 italic">
+                        {provider === "google-drive"
+                          ? "Google Drive has not been switched on for this app yet, so there is nothing to connect to."
+                          : "This app has no shared storage set up, so you will need to bring your own."}
+                      </span>
+                    )}
+
                     {provider === "cloudinary" && storage.cloudinary && (
                       <span className="block font-mono text-[11px] text-on-surface-variant mt-1">
                         {storage.cloudinary.cloudName} &middot; key {storage.cloudinary.apiKey}
@@ -382,12 +390,31 @@ function StorageSection() {
             })}
           </div>
 
+          {(selected === "app" || selected === "cloudinary") && (
+            <p className="text-xs text-on-surface-variant flex items-start gap-2 rounded-lg border border-outline-variant bg-surface-container px-3 py-2.5">
+              <Warning className="w-3.5 h-3.5 mt-0.5 shrink-0 text-error" />
+              <span>
+                <span className="font-semibold text-on-surface">
+                  Files on Cloudinary get a public link.
+                </span>{" "}
+                Anyone who has the URL can open the document without signing in. That applies to Passage
+                storage too &mdash; it is Cloudinary underneath. Google Drive is the only option
+                here that keeps your files private to your own account.
+              </span>
+            </p>
+          )}
+
           {selected === "cloudinary" && (
             <div className="flex flex-col gap-stack-sm rounded-lg border border-outline-variant p-4">
               <p className="text-sm font-semibold text-on-surface">Cloudinary credentials</p>
               <p className="text-xs text-on-surface-variant">
                 Take these from your Cloudinary dashboard. The API secret is encrypted before it is
                 stored, and is never sent back to the browser.
+              </p>
+              <p className="text-xs text-on-surface-variant">
+                An API key and secret grant full access to that Cloudinary account &mdash; this app
+                could read or delete any asset in it, not only what you upload here. Use a dedicated
+                Cloudinary account if that matters to you.
               </p>
               <input
                 type="text"
@@ -460,7 +487,7 @@ function StorageSection() {
               ) : (
                 <div>
                   <button type="button" onClick={handleConnectGoogle} disabled={busy} className={PRIMARY_BUTTON}>
-                    {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {busy && <CircleNotch className="w-4 h-4 animate-spin" />}
                     Connect Google Drive
                   </button>
                 </div>
@@ -483,7 +510,7 @@ function StorageSection() {
               disabled={busy || (!dirty && !hasCloudinaryInput)}
               className={PRIMARY_BUTTON}
             >
-              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+              {busy && <CircleNotch className="w-4 h-4 animate-spin" />}
               {busy ? "Saving…" : "Save storage settings"}
             </button>
           </div>
@@ -562,9 +589,9 @@ function ApplicationsSection() {
             <button
               onClick={() => handleDelete(app.id)}
               disabled={busy}
-              className="px-3 py-1.5 rounded-md bg-error text-on-error text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 inline-flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-md border border-error text-error text-xs font-medium hover:bg-error/12 active:bg-error/20 transition-colors disabled:opacity-45 inline-flex items-center gap-1.5"
             >
-              {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {busy && <CircleNotch className="w-3.5 h-3.5 animate-spin" />}
               Yes, delete
             </button>
             <button
@@ -582,9 +609,9 @@ function ApplicationsSection() {
               className="px-3 py-1.5 rounded-md border border-outline-variant text-on-surface-variant text-xs font-semibold hover:border-primary hover:text-primary transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
             >
               {busy ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <CircleNotch className="w-3.5 h-3.5 animate-spin" />
               ) : isArchived ? (
-                <ArchiveRestore className="w-3.5 h-3.5" />
+                <ArrowCounterClockwise className="w-3.5 h-3.5" />
               ) : (
                 <Archive className="w-3.5 h-3.5" />
               )}
@@ -596,7 +623,7 @@ function ApplicationsSection() {
               aria-label={`Delete ${app.name}`}
               className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md transition-colors disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -708,7 +735,7 @@ function ProfileSection({ user }: { user: PublicUser }) {
 
         <div>
           <button type="submit" disabled={saving || !dirty} className={PRIMARY_BUTTON}>
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving && <CircleNotch className="w-4 h-4 animate-spin" />}
             {saving ? "Saving…" : "Save changes"}
           </button>
         </div>
@@ -821,7 +848,7 @@ function SecuritySection() {
 
         <div>
           <button type="submit" disabled={saving} className={PRIMARY_BUTTON}>
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving && <CircleNotch className="w-4 h-4 animate-spin" />}
             {saving ? "Updating…" : "Change password"}
           </button>
         </div>
@@ -862,7 +889,7 @@ function DangerSection() {
       {!confirming ? (
         <button
           onClick={() => setConfirming(true)}
-          className="px-5 py-2.5 rounded-lg border border-error text-error text-sm font-semibold hover:bg-error hover:text-on-error transition-colors"
+          className="px-5 py-2.5 rounded-lg border border-error text-error text-sm font-medium hover:bg-error/12 active:bg-error/20 transition-colors"
         >
           Delete my account
         </button>
@@ -890,9 +917,9 @@ function DangerSection() {
             <button
               type="submit"
               disabled={deleting}
-              className="px-5 py-2.5 rounded-lg bg-error text-on-error text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg border border-error text-error text-sm font-medium hover:bg-error/12 active:bg-error/20 transition-colors disabled:opacity-45 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
-              {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {deleting && <CircleNotch className="w-4 h-4 animate-spin" />}
               {deleting ? "Deleting…" : "Permanently delete"}
             </button>
             <button

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { Check, ChevronDown, Loader2, TriangleAlert } from "lucide-react"
+import { Check, CaretDown, CircleNotch, Warning } from "@phosphor-icons/react"
 import { PageShell, SectionCard } from "@/components/page-shell"
 import { api, fetcher } from "@/lib/api"
 import type { SupportCategory, SupportTicket } from "@/lib/types"
@@ -27,7 +27,7 @@ const CATEGORY_LABELS: Record<SupportCategory, string> = CATEGORIES.reduce(
 
 const FAQS: { question: string; answer: string }[] = [
   {
-    question: "Does Visa Tracker submit my application for me?",
+    question: "Does Passage submit my application for me?",
     answer:
       "No. It keeps your checklist, deadlines, and documents in one place so nothing is missing when you go to apply. You still submit through the embassy or application centre yourself.",
   },
@@ -93,7 +93,7 @@ function FaqSection() {
                   <span className="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors">
                     {faq.question}
                   </span>
-                  <ChevronDown
+                  <CaretDown
                     className={`w-4 h-4 mt-0.5 flex-shrink-0 text-on-surface-variant transition-transform ${
                       open ? "rotate-180" : ""
                     }`}
@@ -206,7 +206,7 @@ function ContactSection() {
             className="text-sm text-on-error-container bg-error-container rounded-lg px-3 py-2 flex items-start gap-2"
             role="alert"
           >
-            <TriangleAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <Warning className="w-4 h-4 mt-0.5 flex-shrink-0" />
             {error}
           </p>
         )}
@@ -224,9 +224,9 @@ function ContactSection() {
           <button
             type="submit"
             disabled={sending}
-            className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-container transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            className="px-5 py-2.5 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors disabled:opacity-45 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
-            {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {sending && <CircleNotch className="w-4 h-4 animate-spin" />}
             {sending ? "Sending…" : "Send request"}
           </button>
         </div>

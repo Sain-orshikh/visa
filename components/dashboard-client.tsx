@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import useSWR from "swr"
-import { CalendarDays, Check, Compass, Menu, Plus } from "lucide-react"
+import { CalendarBlank, Check, Compass, List, Plus } from "@phosphor-icons/react"
 import { Sidebar } from "@/components/sidebar"
 import { Logo } from "@/components/logo"
 import { ThemeToggleIcon } from "@/components/theme-toggle"
+import { WorldMap } from "@/components/world-map"
 import { DocumentChecklist } from "@/components/document-checklist"
 import { DocumentModal } from "@/components/document-modal"
 import { resolveCategories } from "@/lib/categories"
@@ -63,7 +64,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
   return (
     <div className="h-screen w-full flex overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex flex-shrink-0">
+      <div className="hidden md:flex shrink-0">
         <Sidebar
           user={user}
           applications={applications}
@@ -94,11 +95,11 @@ export function DashboardClient({ user }: DashboardClientProps) {
       {/* Main */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile top bar */}
-        <header className="md:hidden flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant flex-shrink-0">
+        <header className="md:hidden flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant shrink-0">
           <span className="flex items-center gap-2.5 min-w-0">
-            <Logo size={28} priority />
-            <span className="font-display text-lg font-extrabold text-primary truncate">
-              Visa Tracker
+            <Logo size={24} />
+            <span className="font-display text-lg font-medium tracking-tight text-on-background truncate">
+              Passage
             </span>
           </span>
           <div className="flex items-center -mr-2">
@@ -108,7 +109,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
               aria-label="Open menu"
               className="text-on-surface-variant p-2 rounded-lg hover:bg-surface-container transition-colors"
             >
-              <Menu className="w-6 h-6" />
+              <List className="w-6 h-6" />
             </button>
           </div>
         </header>
@@ -152,6 +153,13 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
 /* ------------------------------------------------------------------ header */
 
+const VISA_TYPE_LABEL: Record<string, string> = {
+  tourist: "Tourist",
+  business: "Business",
+  student: "Student",
+  work: "Work",
+}
+
 function ApplicationHeader({
   application,
   progress,
@@ -165,48 +173,56 @@ function ApplicationHeader({
 
   return (
     <section className="mb-stack-lg">
-      <div className="flex justify-between items-start mb-stack-md gap-4">
-        <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-2">
-            Application · {application.visaType}
-            {application.applicantName ? ` · ${application.applicantName}` : ""}
-          </p>
-          <h2 className="font-display text-[34px] leading-[1.15] font-extrabold text-on-background text-balance">
-            {application.name}
-          </h2>
-          <p className="font-mono text-xs text-on-surface-variant flex items-center gap-2 mt-2.5">
-            <CalendarDays className="w-4 h-4" />
-            {application.travelDate
-              ? `Target entry ${new Date(application.travelDate + "T00:00:00")
-                  .toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
-                  .toUpperCase()}`
-              : "No target entry date set"}
+      <div className="flex flex-wrap justify-between items-start mb-stack-md gap-4">
+        <div className="min-w-0 flex flex-col gap-2.5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="font-display text-3xl leading-[1.1] font-medium tracking-tight text-on-background text-balance">
+              {application.name}
+            </h2>
+            <span className="border border-primary-fixed text-primary rounded-full px-2.5 py-1 font-mono text-[11px] tracking-widest uppercase">
+              {VISA_TYPE_LABEL[application.visaType] ?? application.visaType}
+            </span>
+          </div>
+          <p className="font-mono text-xs text-on-surface-variant flex items-center gap-5 flex-wrap">
+            {application.applicantName && <span>{application.applicantName.toUpperCase()}</span>}
+            <span className="flex items-center gap-1.5">
+              <CalendarBlank className="w-3.5 h-3.5" />
+              {application.travelDate
+                ? `ENTRY ${new Date(application.travelDate + "T00:00:00")
+                    .toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+                    .toUpperCase()}`
+                : "NO TARGET ENTRY DATE"}
+            </span>
           </p>
           {application.notes && (
-            <p className="text-sm text-on-surface-variant mt-2 max-w-xl text-pretty">{application.notes}</p>
+            <p className="text-sm text-on-surface-variant max-w-xl text-pretty">{application.notes}</p>
           )}
         </div>
         <button
           onClick={onAdd}
-          className="hidden md:flex items-center gap-2 px-4 py-2.5 border border-primary text-primary rounded-lg text-xs font-semibold hover:bg-primary hover:text-on-primary transition-colors flex-shrink-0"
+          className="hidden md:flex items-center gap-2 px-4 py-2.5 border border-primary text-primary rounded-lg text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           Add document
         </button>
       </div>
 
-      {/* Progress card, closed by the machine-readable zone. */}
-      <div className="bg-surface rounded-xl border border-outline-variant shadow-[0_1px_3px_rgba(16,24,40,0.06)] overflow-hidden">
-        <div className="p-6">
-          <div className="flex justify-between items-baseline mb-3 gap-4">
-            <span className="font-display text-2xl font-bold text-on-surface">{progress}% prepared</span>
-            <span className="font-mono text-xs text-on-surface-variant">
-              {application.uploadedDocuments} of {application.totalDocuments} documents
-            </span>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-5">
+        {/* Progress + phase card */}
+        <div className="bg-surface-container rounded-xl border border-outline-variant p-5 flex flex-col gap-4">
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-5xl leading-none font-medium tracking-tight text-on-surface">
+                {progress}%
+              </span>
+              <span className="text-sm text-on-surface-variant">
+                {application.uploadedDocuments} of {application.totalDocuments} documents
+              </span>
+            </div>
           </div>
 
           <div
-            className="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden"
+            className="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden"
             role="progressbar"
             aria-valuenow={progress}
             aria-valuemin={0}
@@ -219,16 +235,58 @@ function ApplicationHeader({
             />
           </div>
 
-          <PhaseStepper outstanding={outstanding} total={application.totalDocuments} />
+          <PhaseGrid outstanding={outstanding} total={application.totalDocuments} />
+
+          <p className="text-xs text-on-surface-variant border-t border-outline-variant pt-3.5">
+            Adding a document lowers the percentage — that is on purpose. The ratio is what to trust.
+          </p>
         </div>
 
-        <MrzBand application={application} progress={progress} />
+        {/* Route card */}
+        <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden flex flex-col">
+          <div className="flex justify-between px-4 py-3 border-b border-outline-variant font-mono text-[10px] tracking-widest text-on-surface-variant uppercase">
+            <span>Your route</span>
+            <span className="text-primary">
+              {application.destinationCountry?.toUpperCase() ?? "DESTINATION"}
+            </span>
+          </div>
+          <div className="h-47.5 py-2">
+            <WorldMap
+              land="var(--color-neutral-800)"
+              edge="var(--color-outline-variant)"
+              accent="var(--primary)"
+              markers={`0,0:${(application.destinationCountry ?? "").slice(0, 3).toUpperCase()}`}
+            />
+          </div>
+          <div className="grid grid-cols-2 border-t border-outline-variant mt-auto">
+            <div className="px-4 py-3 border-r border-outline-variant">
+              <div className="font-mono text-[9.5px] text-on-surface-variant">CONSULATE</div>
+              <div className="text-sm font-medium mt-1">
+                {application.destinationCountry || "—"}
+              </div>
+            </div>
+            <div className="px-4 py-3">
+              <div className="font-mono text-[9.5px] text-on-surface-variant">DAYS TO ENTRY</div>
+              <div className="text-sm font-medium mt-1">
+                {application.travelDate
+                  ? Math.max(
+                      0,
+                      Math.round(
+                        (new Date(application.travelDate + "T00:00:00").getTime() - Date.now()) /
+                          86400000,
+                      ),
+                    )
+                  : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile add button */}
       <button
         onClick={onAdd}
-        className="md:hidden w-full mt-stack-md flex items-center justify-center gap-2 px-4 py-3 border border-primary text-primary rounded-lg text-sm font-semibold hover:bg-primary hover:text-on-primary transition-colors"
+        className="md:hidden w-full mt-stack-md flex items-center justify-center gap-2 px-4 py-3 border border-primary text-primary rounded-lg text-sm font-medium hover:bg-primary/12 transition-colors"
       >
         <Plus className="w-4 h-4" />
         Add document
@@ -238,88 +296,53 @@ function ApplicationHeader({
 }
 
 /**
- * Phases derived from real state, not from a position on the bar:
- * you are gathering while anything is outstanding, reviewing once
- * everything is in. Submission stays upcoming — the app doesn't submit.
+ * Phases derived from real state, not from a position on the bar: you are
+ * gathering while anything is outstanding, reviewing once everything is in.
+ * Submission stays upcoming — the app doesn't submit.
  */
-function PhaseStepper({ outstanding, total }: { outstanding: number; total: number }) {
+function PhaseGrid({ outstanding, total }: { outstanding: number; total: number }) {
   const complete = total > 0 && outstanding === 0
   const phases = [
-    { label: "Gathering", done: complete, active: !complete },
-    { label: "Review", done: false, active: complete },
-    { label: "Submission", done: false, active: false },
-  ]
+    {
+      label: "Gathering",
+      sub: complete ? "all in" : `${outstanding} document${outstanding === 1 ? "" : "s"} left`,
+      state: complete ? "done" : "now",
+    },
+    { label: "Review", sub: "when nothing is missing", state: complete ? "now" : "next" },
+    { label: "Submission", sub: "you apply in person", state: "later" },
+  ] as const
 
   return (
-    <ol className="flex items-center gap-2 mt-5">
-      {phases.map(({ label, done, active }, i) => (
-        <li key={label} className="flex items-center gap-2 min-w-0">
-          {i > 0 && <span className="w-4 sm:w-8 h-px bg-outline-variant flex-shrink-0" />}
-          <span
-            aria-hidden="true"
-            className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-              done
-                ? "bg-success text-on-primary"
-                : active
-                  ? "bg-primary ring-4 ring-primary/15"
-                  : "border-2 border-outline-variant"
+    <div className="grid grid-cols-3 gap-px bg-outline-variant rounded-lg overflow-hidden">
+      {phases.map(({ label, sub, state }, i) => (
+        <div
+          key={label}
+          className={state === "now" ? "bg-primary-container p-3" : "bg-surface-container p-3"}
+        >
+          <div
+            className={`font-mono text-[9px] tracking-widest uppercase ${
+              state === "now" ? "text-on-primary-container" : "text-on-surface-variant"
             }`}
           >
-            {done && <Check className="w-2.5 h-2.5" strokeWidth={3.5} />}
-          </span>
-          <span
-            className={`font-mono text-[11px] uppercase tracking-[0.12em] truncate ${
-              done || active ? "text-on-surface font-medium" : "text-on-surface-variant"
+            PHASE {i + 1} · {state === "done" ? "DONE" : state === "now" ? "NOW" : state === "next" ? "NEXT" : ""}
+          </div>
+          <div
+            className={`text-sm font-medium mt-1.5 flex items-center gap-1.5 ${
+              state === "now" ? "text-on-primary-container" : "text-on-surface"
             }`}
           >
+            {state === "done" && <Check className="w-3.5 h-3.5" weight="bold" />}
             {label}
-          </span>
-        </li>
+          </div>
+          <div
+            className={`text-[11px] mt-1 ${
+              state === "now" ? "text-on-primary-container" : "text-on-surface-variant"
+            }`}
+          >
+            {sub}
+          </div>
+        </div>
       ))}
-    </ol>
-  )
-}
-
-/* -------------------------------------------------------------- signature */
-
-function mrzPad(value: string, length: number): string {
-  return (value + "<".repeat(length)).slice(0, length)
-}
-
-function mrzText(value: string): string {
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "<")
-    .replace(/^<+|<+$/g, "")
-}
-
-const VISA_CODE: Record<string, string> = { tourist: "T", work: "B", student: "S" }
-
-/**
- * The signature element: a machine-readable zone, the way a passport data
- * page ends. Every character is real application data, chevron-padded to the
- * ICAO line length — decorative in feel, honest in content.
- */
-function MrzBand({ application, progress }: { application: ApplicationDetail; progress: number }) {
-  const country = mrzPad(mrzText(application.destinationCountry).replace(/</g, ""), 3)
-  const holder = mrzText(application.applicantName || application.name)
-  const travel = application.travelDate
-    ? application.travelDate.replace(/-/g, "").slice(2)
-    : "<<<<<<"
-
-  const line1 = mrzPad(`V<${country}<${holder}`, 44)
-  const line2 = mrzPad(
-    `${VISA_CODE[application.visaType] ?? "T"}${travel}<${application.uploadedDocuments}OF${application.totalDocuments}<${progress}PCT`,
-    44,
-  )
-
-  return (
-    <div
-      className="mrz bg-stamp-container text-on-stamp-container border-t border-outline-variant px-6 py-3 select-none"
-      aria-hidden="true"
-    >
-      <div>{line1}</div>
-      <div>{line2}</div>
     </div>
   )
 }
@@ -340,23 +363,23 @@ function EmptyOrLoading({ hasApps }: { hasApps: boolean }) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-      <div className="w-14 h-14 rounded-full bg-stamp-container text-stamp flex items-center justify-center mb-stack-md">
-        <Compass className="w-7 h-7" />
+    <div className="flex flex-col items-start text-left py-16 px-8 border border-dashed border-outline-variant rounded-xl max-w-2xl mx-auto mt-8">
+      <div className="w-9 h-9 flex items-center justify-center mb-stack-md text-primary-fixed">
+        <Compass className="w-8 h-8" />
       </div>
-      <h2 className="font-display text-2xl font-bold text-on-surface text-balance">
-        Start your first application
+      <h2 className="font-display text-2xl font-medium tracking-tight text-on-surface text-balance max-w-[26ch]">
+        One application, one checklist, nothing missing on the day.
       </h2>
-      <p className="text-sm text-on-surface-variant mt-2 max-w-sm text-pretty">
-        Pick a destination and we'll build the document checklist for you. Add deadlines as you go and
-        upload each item once you have it.
+      <p className="text-sm text-on-surface-variant mt-3 max-w-md text-pretty">
+        Tell Passage where you&rsquo;re going and it builds the document list for that consulate.
+        Four short steps, about two minutes.
       </p>
       <Link
         href="/new"
-        className="mt-stack-lg inline-flex items-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:bg-primary-container transition-colors"
+        className="mt-stack-lg inline-flex items-center gap-2 px-5 py-3 border border-primary text-primary rounded-lg text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Start new visa
+        Start your first visa
       </Link>
     </div>
   )

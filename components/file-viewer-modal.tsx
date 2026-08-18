@@ -1,7 +1,15 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CloudUpload, ExternalLink, File as FileIcon, FileImage, Loader2, Trash2, X } from "lucide-react"
+import {
+  CloudArrowUp,
+  ArrowSquareOut,
+  File as FileIcon,
+  FileImage,
+  CircleNotch,
+  Trash,
+  X,
+} from "@phosphor-icons/react"
 import { api } from "@/lib/api"
 import type { VisaDocument, VisaFile } from "@/lib/types"
 
@@ -82,14 +90,14 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
         aria-modal="true"
         aria-labelledby="file-viewer-title"
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden shadow-[0_16px_40px_rgba(16,24,40,0.24)] animate-in fade-in slide-in-from-bottom-4 duration-200"
+        className="bg-surface border border-outline rounded-xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-200"
       >
         <div className="px-gutter py-stack-md border-b border-outline-variant flex justify-between items-start gap-4 shrink-0">
           <div className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
               {files.length} {files.length === 1 ? "file" : "files"}
             </p>
-            <h2 id="file-viewer-title" className="font-display text-xl font-bold text-on-surface truncate">
+            <h2 id="file-viewer-title" className="font-display text-xl font-medium tracking-tight text-on-surface truncate">
               {document.name}
             </h2>
           </div>
@@ -99,7 +107,7 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
               disabled={uploading}
               className="px-3 py-2 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-semibold hover:border-primary hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60"
             >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+              {uploading ? <CircleNotch className="w-4 h-4 animate-spin" /> : <CloudArrowUp className="w-4 h-4" />}
               {uploading ? "Uploading…" : "Add files"}
             </button>
             <button
@@ -134,9 +142,9 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors disabled:opacity-60"
+              className="px-4 py-2 border border-primary text-primary rounded-lg text-xs font-medium flex items-center gap-2 hover:bg-primary/12 active:bg-primary/20 transition-colors disabled:opacity-45"
             >
-              <CloudUpload className="w-4 h-4" />
+              <CloudArrowUp className="w-4 h-4" />
               Upload files
             </button>
           </div>
@@ -172,9 +180,9 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
                     className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-opacity shrink-0"
                   >
                     {busyId === file.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <CircleNotch className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash className="w-3.5 h-3.5" />
                     )}
                   </button>
                 </div>
@@ -194,7 +202,7 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
                     rel="noopener noreferrer"
                     className="text-primary text-xs font-semibold hover:underline flex items-center gap-1 shrink-0"
                   >
-                    Open <ExternalLink className="w-3.5 h-3.5" />
+                    Open <ArrowSquareOut className="w-3.5 h-3.5" />
                   </a>
                 </div>
                 <div className="flex-1 min-h-0 flex items-center justify-center p-4">

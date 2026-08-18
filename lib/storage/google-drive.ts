@@ -103,7 +103,7 @@ export async function exchangeGoogleCode(code: string, redirectUri: string): Pro
   })
   if (!tokens.refresh_token) {
     throw new Error(
-      "Google did not return a refresh token. Remove Visa Tracker from your Google account permissions and try again.",
+      "Google did not return a refresh token. Remove Passage from your Google account permissions and try again.",
     )
   }
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr"
 import { Logo } from "@/components/logo"
 
 interface PageShellProps {
@@ -22,9 +22,9 @@ export function PageShell({ title, eyebrow, description, children }: PageShellPr
         <div className="max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop">
           <div className="h-16 flex items-center justify-between gap-4">
             <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
-              <Logo size={32} priority />
-              <span className="font-display text-base font-extrabold text-primary truncate">
-                Visa Tracker
+              <Logo size={26} />
+              <span className="font-display text-base font-medium tracking-tight text-on-background truncate">
+                Passage
               </span>
             </Link>
             <Link
@@ -45,7 +45,7 @@ export function PageShell({ title, eyebrow, description, children }: PageShellPr
               {eyebrow}
             </p>
           )}
-          <h1 className="font-display text-[34px] leading-[1.15] font-extrabold text-on-background text-balance">
+          <h1 className="font-display text-[34px] leading-[1.15] font-medium tracking-tight text-on-background text-balance">
             {title}
           </h1>
           {description && (
@@ -73,12 +73,12 @@ export function SectionCard({
 }) {
   return (
     <section
-      className={`bg-surface rounded-xl border p-gutter shadow-[0_1px_3px_rgba(16,24,40,0.06)] ${
+      className={`bg-surface rounded-xl border p-gutter ${
         danger ? "border-error/40" : "border-outline-variant"
       }`}
     >
       <h2
-        className={`font-display text-xl font-bold ${danger ? "text-error" : "text-on-surface"}`}
+        className={`font-display text-xl font-medium tracking-tight ${danger ? "text-error" : "text-on-surface"}`}
       >
         {title}
       </h2>

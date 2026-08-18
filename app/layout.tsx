@@ -1,25 +1,18 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Archivo, IBM_Plex_Mono, Inter } from 'next/font/google'
+import { IBM_Plex_Mono, Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-/** Body copy. */
+/** Body copy and headings alike — Nocturne uses Inter throughout. */
 const inter = Inter({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
   display: 'swap',
 })
 
-/** Display face — set tight and heavy for headings and the wordmark. */
-const archivo = Archivo({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-  variable: '--font-archivo',
-  display: 'swap',
-})
-
-/** Utility face — dates, reference codes, and the machine-readable zone. */
+/** Utility face — dates, reference codes, and meta labels. */
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
@@ -28,9 +21,9 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Visa Tracker — Digital Concierge',
+  title: 'Passage — Visa Application Tracker',
   description:
-    'Track visa application documents, deadlines, and progress in one calm, organized workspace.',
+    'Every visa application, in one calm place. Dates, documents and status, kept as a to-do list. Free, always.',
   generator: 'v0.app',
   icons: {
     icon: '/favicon.ico',
@@ -49,8 +42,8 @@ const themeScript = `(function(){try{var t=localStorage.getItem('vt-theme');if(t
 export const viewport: Viewport = {
   colorScheme: 'light dark',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#eef1f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d1420' },
+    { media: '(prefers-color-scheme: light)', color: '#eef0fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#161826' },
   ],
 }
 
@@ -63,7 +56,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${archivo.variable} ${plexMono.variable} bg-background`}
+      className={`${inter.variable} ${plexMono.variable} bg-background`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

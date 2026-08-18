@@ -1,7 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CalendarDays, ChevronDown, FileText, Folder, Loader2, PlusCircle, Save, X } from "lucide-react"
+import {
+  CalendarBlank,
+  CaretDown,
+  FileText,
+  Folder,
+  CircleNotch,
+  PlusCircle,
+  FloppyDisk,
+  X,
+} from "@phosphor-icons/react"
 import { api } from "@/lib/api"
 import { OTHER_CATEGORY, type CategoryOption } from "@/lib/categories"
 import type { VisaDocument, VisaFolder } from "@/lib/types"
@@ -93,7 +102,7 @@ export function DocumentModal({
         aria-modal="true"
         aria-labelledby="doc-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-xl w-full max-w-2xl flex flex-col max-h-full overflow-hidden shadow-[0_16px_40px_rgba(16,24,40,0.24)] animate-in fade-in slide-in-from-bottom-4 duration-200"
+        className="bg-surface border border-outline rounded-xl w-full max-w-2xl flex flex-col max-h-full overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-200"
       >
         {/* Header */}
         <div className="px-gutter py-stack-md border-b border-outline-variant flex justify-between items-start gap-4">
@@ -101,7 +110,7 @@ export function DocumentModal({
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-1.5">
               Checklist
             </p>
-            <h2 id="doc-modal-title" className="font-display text-xl font-bold text-on-surface">
+            <h2 id="doc-modal-title" className="font-display text-xl font-medium tracking-tight text-on-surface">
               {editing ? "Edit document" : "Add a document"}
             </h2>
           </div>
@@ -139,7 +148,7 @@ export function DocumentModal({
                 Deadline
               </label>
               <div className="relative">
-                <CalendarDays className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                <CalendarBlank className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
                 <input
                   id="doc-deadline"
                   type="date"
@@ -169,7 +178,7 @@ export function DocumentModal({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                <CaretDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
               </div>
               <p className="text-xs text-on-surface-variant">
                 Groups the document in your checklist. Add your own in Settings.
@@ -197,7 +206,7 @@ export function DocumentModal({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
+                <CaretDown className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
               </div>
             </div>
           )}
@@ -235,12 +244,12 @@ export function DocumentModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-container transition-colors flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2.5 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/12 active:bg-primary/20 transition-colors flex items-center gap-2 disabled:opacity-45"
             >
               {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <CircleNotch className="w-4 h-4 animate-spin" />
               ) : editing ? (
-                <Save className="w-4 h-4" />
+                <FloppyDisk className="w-4 h-4" />
               ) : (
                 <PlusCircle className="w-4 h-4" />
               )}
