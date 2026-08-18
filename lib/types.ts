@@ -18,6 +18,8 @@ export interface VisaApplication {
   visaType: VisaType
   travelDate: string | null
   applicationCenter: string | null
+  applicantName: string | null
+  notes: string | null
   createdAt: string
 }
 

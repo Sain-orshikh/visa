@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import useSWR from "swr"
-import { Plus, Menu, CalendarDays, X } from "lucide-react"
+import { CalendarDays, Check, Compass, Menu, Plus } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 import { DocumentChecklist } from "@/components/document-checklist"
 import { AddDocumentModal } from "@/components/add-document-modal"
@@ -12,8 +13,6 @@ import type { PublicUser, VisaDocument } from "@/lib/types"
 interface DashboardClientProps {
   user: PublicUser
 }
-
-const PHASES = ["Gathering", "Review", "Submission"]
 
 export function DashboardClient({ user }: DashboardClientProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -52,7 +51,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const progress = application?.progress ?? 0
 
   return (
-    <div className="h-screen w-full flex overflow-hidden bg-surface-container-lowest">
+    <div className="h-screen w-full flex overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden md:flex flex-shrink-0">
         <Sidebar
@@ -66,7 +65,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
       {/* Mobile sidebar drawer */}
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex">
-          <div className="absolute inset-0 bg-on-background/30" onClick={() => setMobileNavOpen(false)} />
+          <div
+            className="absolute inset-0 bg-on-background/40 backdrop-blur-[1px]"
+            onClick={() => setMobileNavOpen(false)}
+          />
           <div className="relative z-10">
             <Sidebar
               user={user}
@@ -83,8 +85,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile top bar */}
         <header className="md:hidden flex justify-between items-center px-margin-mobile h-16 bg-surface border-b border-outline-variant flex-shrink-0">
-          <h1 className="text-lg font-bold text-primary">Visa Tracker</h1>
-          <button onClick={() => setMobileNavOpen(true)} aria-label="Open menu" className="text-on-surface-variant">
+          <span className="font-display text-lg font-extrabold text-primary">Visa Tracker</span>
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open menu"
+            className="text-on-surface-variant p-2 -mr-2 rounded-lg hover:bg-surface-container transition-colors"
+          >
             <Menu className="w-6 h-6" />
           </button>
         </header>
@@ -95,60 +101,11 @@ export function DashboardClient({ user }: DashboardClientProps) {
               <EmptyOrLoading hasApps={applications.length > 0} />
             ) : (
               <>
-                {/* Header + progress */}
-                <div className="mb-stack-lg">
-                  <div className="flex justify-between items-end mb-6 gap-4">
-                    <div className="min-w-0">
-                      <h2 className="text-[32px] leading-[40px] font-bold tracking-tight text-on-background mb-2 text-balance">
-                        {application.name}
-                      </h2>
-                      <p className="text-base text-on-surface-variant flex items-center gap-2">
-                        <CalendarDays className="w-4 h-4 text-secondary" />
-                        {application.travelDate
-                          ? `Target Entry: ${new Date(application.travelDate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                          : "No target entry date set"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowAdd(true)}
-                      className="hidden md:flex items-center gap-2 px-4 py-2 bg-transparent border border-secondary text-secondary rounded-lg text-xs font-semibold hover:bg-surface-container-low transition-colors flex-shrink-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add New Document
-                    </button>
-                  </div>
-
-                  {/* Progress card */}
-                  <div className="bg-surface rounded-xl p-6 border border-outline-variant shadow-sm">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-xl font-semibold text-on-surface">{progress}% Prepared</span>
-                      <span className="text-xs font-semibold text-on-surface-variant">
-                        {application.uploadedDocuments} of {application.totalDocuments} Documents
-                      </span>
-                    </div>
-                    <div className="w-full bg-surface-container-high rounded-full h-3 mb-2 overflow-hidden">
-                      <div
-                        className="bg-primary h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs font-semibold text-on-surface-variant mt-2">
-                      {PHASES.map((p) => (
-                        <span key={p}>{p}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mobile add button */}
-                <button
-                  onClick={() => setShowAdd(true)}
-                  className="md:hidden w-full mb-stack-md flex items-center justify-center gap-2 px-4 py-3 border border-secondary text-secondary rounded-lg text-sm font-semibold hover:bg-surface-container-low transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add New Document
-                </button>
-
+                <ApplicationHeader
+                  application={application}
+                  progress={progress}
+                  onAdd={() => setShowAdd(true)}
+                />
                 <DocumentChecklist documents={documents} onChanged={refreshAll} />
               </>
             )}
@@ -163,19 +120,214 @@ export function DashboardClient({ user }: DashboardClientProps) {
   )
 }
 
+/* ------------------------------------------------------------------ header */
+
+function ApplicationHeader({
+  application,
+  progress,
+  onAdd,
+}: {
+  application: ApplicationDetail
+  progress: number
+  onAdd: () => void
+}) {
+  const outstanding = application.totalDocuments - application.uploadedDocuments
+
+  return (
+    <section className="mb-stack-lg">
+      <div className="flex justify-between items-start mb-stack-md gap-4">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-on-surface-variant mb-2">
+            Application · {application.visaType}
+            {application.applicantName ? ` · ${application.applicantName}` : ""}
+          </p>
+          <h2 className="font-display text-[34px] leading-[1.15] font-extrabold text-on-background text-balance">
+            {application.name}
+          </h2>
+          <p className="font-mono text-xs text-on-surface-variant flex items-center gap-2 mt-2.5">
+            <CalendarDays className="w-4 h-4" />
+            {application.travelDate
+              ? `Target entry ${new Date(application.travelDate + "T00:00:00")
+                  .toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+                  .toUpperCase()}`
+              : "No target entry date set"}
+          </p>
+          {application.notes && (
+            <p className="text-sm text-on-surface-variant mt-2 max-w-xl text-pretty">{application.notes}</p>
+          )}
+        </div>
+        <button
+          onClick={onAdd}
+          className="hidden md:flex items-center gap-2 px-4 py-2.5 border border-primary text-primary rounded-lg text-xs font-semibold hover:bg-primary hover:text-on-primary transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Add document
+        </button>
+      </div>
+
+      {/* Progress card, closed by the machine-readable zone. */}
+      <div className="bg-surface rounded-xl border border-outline-variant shadow-[0_1px_3px_rgba(16,24,40,0.06)] overflow-hidden">
+        <div className="p-6">
+          <div className="flex justify-between items-baseline mb-3 gap-4">
+            <span className="font-display text-2xl font-bold text-on-surface">{progress}% prepared</span>
+            <span className="font-mono text-xs text-on-surface-variant">
+              {application.uploadedDocuments} of {application.totalDocuments} documents
+            </span>
+          </div>
+
+          <div
+            className="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Documents prepared"
+          >
+            <div
+              className="bg-primary h-full rounded-full transition-[width] duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <PhaseStepper outstanding={outstanding} total={application.totalDocuments} />
+        </div>
+
+        <MrzBand application={application} progress={progress} />
+      </div>
+
+      {/* Mobile add button */}
+      <button
+        onClick={onAdd}
+        className="md:hidden w-full mt-stack-md flex items-center justify-center gap-2 px-4 py-3 border border-primary text-primary rounded-lg text-sm font-semibold hover:bg-primary hover:text-on-primary transition-colors"
+      >
+        <Plus className="w-4 h-4" />
+        Add document
+      </button>
+    </section>
+  )
+}
+
+/**
+ * Phases derived from real state, not from a position on the bar:
+ * you are gathering while anything is outstanding, reviewing once
+ * everything is in. Submission stays upcoming — the app doesn't submit.
+ */
+function PhaseStepper({ outstanding, total }: { outstanding: number; total: number }) {
+  const complete = total > 0 && outstanding === 0
+  const phases = [
+    { label: "Gathering", done: complete, active: !complete },
+    { label: "Review", done: false, active: complete },
+    { label: "Submission", done: false, active: false },
+  ]
+
+  return (
+    <ol className="flex items-center gap-2 mt-5">
+      {phases.map(({ label, done, active }, i) => (
+        <li key={label} className="flex items-center gap-2 min-w-0">
+          {i > 0 && <span className="w-4 sm:w-8 h-px bg-outline-variant flex-shrink-0" />}
+          <span
+            aria-hidden="true"
+            className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
+              done
+                ? "bg-success text-on-primary"
+                : active
+                  ? "bg-primary ring-4 ring-primary/15"
+                  : "border-2 border-outline-variant"
+            }`}
+          >
+            {done && <Check className="w-2.5 h-2.5" strokeWidth={3.5} />}
+          </span>
+          <span
+            className={`font-mono text-[11px] uppercase tracking-[0.12em] truncate ${
+              done || active ? "text-on-surface font-medium" : "text-on-surface-variant"
+            }`}
+          >
+            {label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/* -------------------------------------------------------------- signature */
+
+function mrzPad(value: string, length: number): string {
+  return (value + "<".repeat(length)).slice(0, length)
+}
+
+function mrzText(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "<")
+    .replace(/^<+|<+$/g, "")
+}
+
+const VISA_CODE: Record<string, string> = { tourist: "T", work: "B", student: "S" }
+
+/**
+ * The signature element: a machine-readable zone, the way a passport data
+ * page ends. Every character is real application data, chevron-padded to the
+ * ICAO line length — decorative in feel, honest in content.
+ */
+function MrzBand({ application, progress }: { application: ApplicationDetail; progress: number }) {
+  const country = mrzPad(mrzText(application.destinationCountry).replace(/</g, ""), 3)
+  const holder = mrzText(application.applicantName || application.name)
+  const travel = application.travelDate
+    ? application.travelDate.replace(/-/g, "").slice(2)
+    : "<<<<<<"
+
+  const line1 = mrzPad(`V<${country}<${holder}`, 44)
+  const line2 = mrzPad(
+    `${VISA_CODE[application.visaType] ?? "T"}${travel}<${application.uploadedDocuments}OF${application.totalDocuments}<${progress}PCT`,
+    44,
+  )
+
+  return (
+    <div
+      className="mrz bg-stamp-container text-on-stamp-container border-t border-outline-variant px-6 py-3 select-none"
+      aria-hidden="true"
+    >
+      <div>{line1}</div>
+      <div>{line2}</div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------ empty state */
+
 function EmptyOrLoading({ hasApps }: { hasApps: boolean }) {
   if (hasApps) {
-    return <p className="text-on-surface-variant">Loading application…</p>
+    return (
+      <div className="flex flex-col gap-4 animate-pulse" aria-busy="true" aria-live="polite">
+        <div className="h-8 w-64 rounded-md bg-surface-container" />
+        <div className="h-36 rounded-xl bg-surface-container" />
+        <div className="h-16 rounded-lg bg-surface-container" />
+        <div className="h-16 rounded-lg bg-surface-container" />
+        <span className="sr-only">Loading application…</span>
+      </div>
+    )
   }
+
   return (
-    <div className="flex flex-col items-center justify-center text-center py-stack-lg gap-stack-md">
-      <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center">
-        <X className="w-6 h-6 text-on-surface-variant" />
+    <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+      <div className="w-14 h-14 rounded-full bg-stamp-container text-stamp flex items-center justify-center mb-stack-md">
+        <Compass className="w-7 h-7" />
       </div>
-      <div>
-        <h2 className="text-xl font-semibold text-on-surface">No applications yet</h2>
-        <p className="text-sm text-on-surface-variant mt-1">Start a new visa to begin tracking your documents.</p>
-      </div>
+      <h2 className="font-display text-2xl font-bold text-on-surface text-balance">
+        Start your first application
+      </h2>
+      <p className="text-sm text-on-surface-variant mt-2 max-w-sm text-pretty">
+        Pick a destination and we'll build the document checklist for you. Add deadlines as you go and
+        upload each item once you have it.
+      </p>
+      <Link
+        href="/new"
+        className="mt-stack-lg inline-flex items-center gap-2 px-5 py-3 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:bg-primary-container transition-colors"
+      >
+        <Plus className="w-4 h-4" />
+        Start new visa
+      </Link>
     </div>
   )
 }

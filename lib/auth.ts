@@ -72,7 +72,7 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!token) return null
   const userId = parseToken(token)
   if (!userId) return null
-  return findUserById(userId) ?? null
+  return (await findUserById(userId)) ?? null
 }
 
 export function toPublicUser(user: User): PublicUser {

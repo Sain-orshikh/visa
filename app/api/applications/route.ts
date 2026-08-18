@@ -9,15 +9,18 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const applications = listApplications(user.id).map((app) => {
-    const docs = listDocuments(app.id)
-    const uploaded = docs.filter((d) => d.status === "uploaded").length
-    return {
-      ...app,
-      totalDocuments: docs.length,
-      uploadedDocuments: uploaded,
-    }
-  })
+  const userApplications = await listApplications(user.id)
+  const applications = await Promise.all(
+    userApplications.map(async (app) => {
+      const docs = await listDocuments(app.id)
+      const uploaded = docs.filter((d) => d.status === "uploaded").length
+      return {
+        ...app,
+        totalDocuments: docs.length,
+        uploadedDocuments: uploaded,
+      }
+    }),
+  )
 
   return NextResponse.json({ applications })
 }
@@ -32,6 +35,8 @@ export async function POST(request: Request) {
     visaType?: string
     travelDate?: string | null
     applicationCenter?: string | null
+    applicantName?: string | null
+    notes?: string | null
   }
   try {
     body = await request.json()
@@ -51,13 +56,15 @@ export async function POST(request: Request) {
   const label = visaType.charAt(0).toUpperCase() + visaType.slice(1)
   const name = (body.name ?? "").trim() || `${destinationCountry} ${label} Visa`
 
-  const application = createApplication({
+  const application = await createApplication({
     userId: user.id,
     name,
     destinationCountry,
     visaType,
     travelDate: body.travelDate ?? null,
     applicationCenter: body.applicationCenter ?? null,
+    applicantName: body.applicantName?.trim() || null,
+    notes: body.notes?.trim() || null,
   })
 
   return NextResponse.json({ application }, { status: 201 })

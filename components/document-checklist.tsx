@@ -313,7 +313,7 @@ export function DocumentChecklist({ documents, onChanged }: DocumentChecklistPro
             <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-on-surface-variant">
               {label}
             </h3>
-            <span className="font-mono text-[11px] text-outline">{items.length}</span>
+            <span className="font-mono text-[11px] text-on-surface-variant">{items.length}</span>
             <span className="flex-1 h-px bg-outline-variant" />
           </header>
           <div className="flex flex-col gap-2">
@@ -347,7 +347,7 @@ export function DocumentChecklist({ documents, onChanged }: DocumentChecklistPro
             <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-on-surface-variant">
               On file
             </h3>
-            <span className="font-mono text-[11px] text-outline">{onFile.length}</span>
+            <span className="font-mono text-[11px] text-on-surface-variant">{onFile.length}</span>
             <span className="flex-1 h-px bg-outline-variant" />
             <ChevronDown
               className={`w-4 h-4 text-on-surface-variant transition-transform duration-200 ${

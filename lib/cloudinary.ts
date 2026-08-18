@@ -14,12 +14,14 @@ let configured = false
 
 function ensureConfigured() {
   if (configured) return
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true,
-  })
+  // The SDK auto-parses CLOUDINARY_URL on its first config() call. Only pass
+  // the discrete vars when they're actually set — passing `undefined` keys
+  // here would overwrite the values already parsed from CLOUDINARY_URL.
+  const overrides: Record<string, string> = {}
+  if (process.env.CLOUDINARY_CLOUD_NAME) overrides.cloud_name = process.env.CLOUDINARY_CLOUD_NAME
+  if (process.env.CLOUDINARY_API_KEY) overrides.api_key = process.env.CLOUDINARY_API_KEY
+  if (process.env.CLOUDINARY_API_SECRET) overrides.api_secret = process.env.CLOUDINARY_API_SECRET
+  cloudinary.config({ ...overrides, secure: true })
   configured = true
 }
 

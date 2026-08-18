@@ -11,9 +11,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const document = getDocument(id)
+  const document = await getDocument(id)
   if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 })
-  const application = getApplication(user.id, document.applicationId)
+  const application = await getApplication(user.id, document.applicationId)
   if (!application) return NextResponse.json({ error: "Document not found" }, { status: 404 })
 
   if (!isCloudinaryConfigured()) {
@@ -51,7 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const result = await uploadBuffer(buffer, file.name, `visa-tracker/${application.id}`)
 
-    const updated = updateDocument(id, {
+    const updated = await updateDocument(id, {
       status: "uploaded",
       fileUrl: result.url,
       filePublicId: result.publicId,

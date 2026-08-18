@@ -23,12 +23,12 @@ export async function POST(request: Request) {
   if (password.length < 8) {
     return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 })
   }
-  if (findUserByEmail(email)) {
+  if (await findUserByEmail(email)) {
     return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 })
   }
 
-  const user = createUser({ email, name, passwordHash: hashPassword(password) })
-  seedForUser(user.id)
+  const user = await createUser({ email, name, passwordHash: hashPassword(password) })
+  await seedForUser(user.id)
   await createSession(user.id)
 
   return NextResponse.json({ user: toPublicUser(user) }, { status: 201 })

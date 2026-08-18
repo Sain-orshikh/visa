@@ -44,6 +44,8 @@ export const api = {
     visaType: VisaType
     travelDate?: string | null
     applicationCenter?: string | null
+    applicantName?: string | null
+    notes?: string | null
   }) => send<{ application: VisaApplication }>("/api/applications", "POST", input),
   deleteApplication: (id: string) => send<{ ok: true }>(`/api/applications/${id}`, "DELETE"),
 

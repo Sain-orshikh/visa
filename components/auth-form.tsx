@@ -10,6 +10,9 @@ interface AuthFormProps {
   mode: "login" | "register"
 }
 
+const FIELD =
+  "w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter()
   const [name, setName] = useState("")
@@ -39,24 +42,24 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-surface-container-low px-margin-mobile py-stack-lg">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-margin-mobile py-stack-lg">
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-stack-lg">
-          <div className="w-14 h-14 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-stack-md shadow-sm">
+          <div className="w-14 h-14 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-stack-md">
             <Passport className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">Visa Tracker</h1>
-          <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mt-1">
+          <h1 className="font-display text-2xl font-extrabold text-primary">Visa Tracker</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-on-surface-variant mt-1.5">
             Digital Concierge
           </p>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-gutter shadow-sm">
-          <h2 className="text-xl font-semibold text-on-surface mb-1">
+        <div className="bg-surface border border-outline-variant rounded-xl p-gutter shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+          <h2 className="font-display text-xl font-bold text-on-surface mb-1">
             {isRegister ? "Create your account" : "Welcome back"}
           </h2>
-          <p className="text-sm text-on-surface-variant mb-stack-lg">
+          <p className="text-sm text-on-surface-variant mb-stack-lg text-pretty">
             {isRegister
               ? "Start tracking your visa documents in one calm workspace."
               : "Sign in to continue tracking your applications."}
@@ -65,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
             {isRegister && (
               <div className="flex flex-col gap-stack-sm">
-                <label htmlFor="name" className="text-xs font-semibold uppercase tracking-wide text-on-surface">
+                <label htmlFor="name" className="text-sm font-semibold text-on-surface">
                   Full name
                 </label>
                 <input
@@ -76,13 +79,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Traveler"
-                  className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  className={FIELD}
                 />
               </div>
             )}
 
             <div className="flex flex-col gap-stack-sm">
-              <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-on-surface">
+              <label htmlFor="email" className="text-sm font-semibold text-on-surface">
                 Email
               </label>
               <input
@@ -93,12 +96,12 @@ export function AuthForm({ mode }: AuthFormProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                className={FIELD}
               />
             </div>
 
             <div className="flex flex-col gap-stack-sm">
-              <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-on-surface">
+              <label htmlFor="password" className="text-sm font-semibold text-on-surface">
                 Password
               </label>
               <input
@@ -110,7 +113,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={isRegister ? "At least 8 characters" : "••••••••"}
-                className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                className={FIELD}
               />
             </div>
 
@@ -123,7 +126,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="mt-stack-sm w-full py-3 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+              className="mt-stack-sm w-full py-3 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-container transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Please wait…" : isRegister ? "Create account" : "Sign in"}
             </button>

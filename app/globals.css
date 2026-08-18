@@ -60,6 +60,7 @@
   --color-success: var(--success);
   --color-success-container: var(--success-container);
   --color-on-success-container: var(--on-success-container);
+  --color-selected: var(--selected);
   --color-stamp: var(--stamp);
   --color-stamp-container: var(--stamp-container);
   --color-on-stamp-container: var(--on-stamp-container);
@@ -120,7 +121,7 @@
   --surface-container: #e7ecf4;
   --surface-container-high: #dce3ee;
   --surface-container-highest: #cfd9e8;
-  --outline: #8a94a6;
+  --outline: #697285;
   --outline-variant: #d4dbe6;
 
   /* Oxblood — reserved for genuinely wrong: overdue, failure. */
@@ -136,6 +137,9 @@
   --success: #1f6f4a;
   --success-container: #ddf0e5;
   --on-success-container: #145135;
+  /* Selected surface — an explicit token beats an opacity hack, and it
+     lets the selected state be tuned per theme. */
+  --selected: #e6ecf7;
   /* Stamp violet — the signature accent, spent only on the MRZ band. */
   --stamp: #6b4a9e;
   --stamp-container: #ece5f7;
@@ -199,6 +203,7 @@
     --success: #86d6aa;
     --success-container: #123c28;
     --on-success-container: #c6ebd6;
+    --selected: #23324e;
     --stamp: #c4aaf0;
     --stamp-container: #2f2148;
     --on-stamp-container: #e2d4f8;
@@ -257,6 +262,7 @@
   --success: #86d6aa;
   --success-container: #123c28;
   --on-success-container: #c6ebd6;
+  --selected: #23324e;
   --stamp: #c4aaf0;
   --stamp-container: #2f2148;
   --on-stamp-container: #e2d4f8;

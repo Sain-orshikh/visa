@@ -7,10 +7,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const application = getApplication(user.id, id)
+  const application = await getApplication(user.id, id)
   if (!application) return NextResponse.json({ error: "Application not found" }, { status: 404 })
 
-  const documents = listDocuments(application.id)
+  const documents = await listDocuments(application.id)
   const uploaded = documents.filter((d) => d.status === "uploaded").length
   const total = documents.length
   const progress = total === 0 ? 0 : Math.round((uploaded / total) * 100)
@@ -26,7 +26,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const ok = deleteApplication(user.id, id)
+  const ok = await deleteApplication(user.id, id)
   if (!ok) return NextResponse.json({ error: "Application not found" }, { status: 404 })
 
   return NextResponse.json({ ok: true })

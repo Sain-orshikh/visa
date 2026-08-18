@@ -1,42 +1,40 @@
 import { randomUUID } from "crypto"
+import { getDb } from "./mongodb"
 import type { User, VisaApplication, VisaDocument, VisaType } from "./types"
 
 /**
- * In-memory data store.
- *
- * The user opted for in-memory / JSON persistence instead of a database.
- * Data lives in a module-level singleton attached to `globalThis` so it
- * survives hot reloads in development. On serverless it is per-instance and
- * will reset when the instance is recycled — acceptable for this prototype.
+ * Data layer backed by MongoDB. Every document keeps its own `id` (a UUID)
+ * as the public identifier — Mongo's `_id` is never exposed to callers, so
+ * the rest of the app (API routes, client types) is unaffected by the
+ * storage engine underneath.
  */
-interface Db {
-  users: User[]
-  applications: VisaApplication[]
-  documents: VisaDocument[]
+
+const NO_ID = { projection: { _id: 0 } } as const
+
+async function users() {
+  return (await getDb()).collection<User>("users")
 }
-
-const globalForDb = globalThis as unknown as { __visaTrackerDb?: Db }
-
-const db: Db =
-  globalForDb.__visaTrackerDb ??
-  (globalForDb.__visaTrackerDb = {
-    users: [],
-    applications: [],
-    documents: [],
-  })
+async function applications() {
+  return (await getDb()).collection<VisaApplication>("applications")
+}
+async function documents() {
+  return (await getDb()).collection<VisaDocument>("documents")
+}
 
 /* ---------------------------------- Users --------------------------------- */
 
-export function findUserByEmail(email: string): User | undefined {
+export async function findUserByEmail(email: string): Promise<User | undefined> {
   const normalized = email.trim().toLowerCase()
-  return db.users.find((u) => u.email === normalized)
+  const doc = await (await users()).findOne({ email: normalized }, NO_ID)
+  return doc ?? undefined
 }
 
-export function findUserById(id: string): User | undefined {
-  return db.users.find((u) => u.id === id)
+export async function findUserById(id: string): Promise<User | undefined> {
+  const doc = await (await users()).findOne({ id }, NO_ID)
+  return doc ?? undefined
 }
 
-export function createUser(input: { email: string; name: string; passwordHash: string }): User {
+export async function createUser(input: { email: string; name: string; passwordHash: string }): Promise<User> {
   const user: User = {
     id: randomUUID(),
     email: input.email.trim().toLowerCase(),
@@ -44,30 +42,31 @@ export function createUser(input: { email: string; name: string; passwordHash: s
     passwordHash: input.passwordHash,
     createdAt: new Date().toISOString(),
   }
-  db.users.push(user)
+  await (await users()).insertOne({ ...user })
   return user
 }
 
 /* ------------------------------ Applications ------------------------------ */
 
-export function listApplications(userId: string): VisaApplication[] {
-  return db.applications
-    .filter((a) => a.userId === userId)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+export async function listApplications(userId: string): Promise<VisaApplication[]> {
+  return (await applications()).find({ userId }, NO_ID).sort({ createdAt: 1 }).toArray()
 }
 
-export function getApplication(userId: string, id: string): VisaApplication | undefined {
-  return db.applications.find((a) => a.id === id && a.userId === userId)
+export async function getApplication(userId: string, id: string): Promise<VisaApplication | undefined> {
+  const doc = await (await applications()).findOne({ id, userId }, NO_ID)
+  return doc ?? undefined
 }
 
-export function createApplication(input: {
+export async function createApplication(input: {
   userId: string
   name: string
   destinationCountry: string
   visaType: VisaType
   travelDate?: string | null
   applicationCenter?: string | null
-}): VisaApplication {
+  applicantName?: string | null
+  notes?: string | null
+}): Promise<VisaApplication> {
   const app: VisaApplication = {
     id: randomUUID(),
     userId: input.userId,
@@ -76,39 +75,40 @@ export function createApplication(input: {
     visaType: input.visaType,
     travelDate: input.travelDate ?? null,
     applicationCenter: input.applicationCenter ?? null,
+    applicantName: input.applicantName ?? null,
+    notes: input.notes ?? null,
     createdAt: new Date().toISOString(),
   }
-  db.applications.push(app)
+  await (await applications()).insertOne({ ...app })
   return app
 }
 
-export function deleteApplication(userId: string, id: string): boolean {
-  const app = getApplication(userId, id)
+export async function deleteApplication(userId: string, id: string): Promise<boolean> {
+  const app = await getApplication(userId, id)
   if (!app) return false
-  db.applications = db.applications.filter((a) => a.id !== id)
-  db.documents = db.documents.filter((d) => d.applicationId !== id)
+  await (await applications()).deleteOne({ id })
+  await (await documents()).deleteMany({ applicationId: id })
   return true
 }
 
 /* -------------------------------- Documents ------------------------------- */
 
-export function listDocuments(applicationId: string): VisaDocument[] {
-  return db.documents
-    .filter((d) => d.applicationId === applicationId)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+export async function listDocuments(applicationId: string): Promise<VisaDocument[]> {
+  return (await documents()).find({ applicationId }, NO_ID).sort({ createdAt: 1 }).toArray()
 }
 
-export function getDocument(id: string): VisaDocument | undefined {
-  return db.documents.find((d) => d.id === id)
+export async function getDocument(id: string): Promise<VisaDocument | undefined> {
+  const doc = await (await documents()).findOne({ id }, NO_ID)
+  return doc ?? undefined
 }
 
-export function createDocument(input: {
+export async function createDocument(input: {
   applicationId: string
   name: string
   description?: string
   category?: string | null
   deadline?: string | null
-}): VisaDocument {
+}): Promise<VisaDocument> {
   const doc: VisaDocument = {
     id: randomUUID(),
     applicationId: input.applicationId,
@@ -124,21 +124,26 @@ export function createDocument(input: {
     uploadedAt: null,
     createdAt: new Date().toISOString(),
   }
-  db.documents.push(doc)
+  await (await documents()).insertOne({ ...doc })
   return doc
 }
 
-export function updateDocument(id: string, patch: Partial<VisaDocument>): VisaDocument | undefined {
-  const doc = getDocument(id)
-  if (!doc) return undefined
-  Object.assign(doc, patch)
-  return doc
+export async function updateDocument(
+  id: string,
+  patch: Partial<VisaDocument>,
+): Promise<VisaDocument | undefined> {
+  const { id: _ignoredId, ...safePatch } = patch
+  const result = await (await documents()).findOneAndUpdate(
+    { id },
+    { $set: safePatch },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ?? undefined
 }
 
-export function deleteDocument(id: string): boolean {
-  const exists = db.documents.some((d) => d.id === id)
-  db.documents = db.documents.filter((d) => d.id !== id)
-  return exists
+export async function deleteDocument(id: string): Promise<boolean> {
+  const result = await (await documents()).deleteOne({ id })
+  return result.deletedCount > 0
 }
 
 /* --------------------------------- Seeding -------------------------------- */
@@ -151,8 +156,8 @@ const SCHENGEN_DOCS: Array<{ name: string; description: string; category: string
 ]
 
 /** Give a brand-new user a starter application so the dashboard is not empty. */
-export function seedForUser(userId: string): void {
-  const app = createApplication({
+export async function seedForUser(userId: string): Promise<void> {
+  const app = await createApplication({
     userId,
     name: "Schengen Visa",
     destinationCountry: "France",
@@ -161,6 +166,6 @@ export function seedForUser(userId: string): void {
     applicationCenter: "lon",
   })
   for (const d of SCHENGEN_DOCS) {
-    createDocument({ applicationId: app.id, name: d.name, description: d.description, category: d.category })
+    await createDocument({ applicationId: app.id, name: d.name, description: d.description, category: d.category })
   }
 }

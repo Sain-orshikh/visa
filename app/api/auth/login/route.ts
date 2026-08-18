@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const email = (body.email ?? "").trim().toLowerCase()
   const password = body.password ?? ""
 
-  const user = findUserByEmail(email)
+  const user = await findUserByEmail(email)
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ error: "Incorrect email or password." }, { status: 401 })
   }

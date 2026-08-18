@@ -6,9 +6,9 @@ import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
 async function loadOwnedDocument(documentId: string) {
   const user = await getCurrentUser()
   if (!user) return { error: "Unauthorized", status: 401 as const }
-  const document = getDocument(documentId)
+  const document = await getDocument(documentId)
   if (!document) return { error: "Document not found", status: 404 as const }
-  const application = getApplication(user.id, document.applicationId)
+  const application = await getApplication(user.id, document.applicationId)
   if (!application) return { error: "Document not found", status: 404 as const }
   return { document }
 }
@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.category !== undefined) patch.category = body.category
   if (body.deadline !== undefined) patch.deadline = body.deadline || null
 
-  const document = updateDocument(id, patch)
+  const document = await updateDocument(id, patch)
   return NextResponse.json({ document })
 }
 
@@ -45,6 +45,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     await deleteFromCloudinary(document.filePublicId)
   }
 
-  deleteDocument(id)
+  await deleteDocument(id)
   return NextResponse.json({ ok: true })
 }

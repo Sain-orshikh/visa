@@ -7,7 +7,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const application = getApplication(user.id, id)
+  const application = await getApplication(user.id, id)
   if (!application) return NextResponse.json({ error: "Application not found" }, { status: 404 })
 
   let body: { name?: string; description?: string; category?: string | null; deadline?: string | null }
@@ -20,7 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const name = (body.name ?? "").trim()
   if (!name) return NextResponse.json({ error: "Document name is required." }, { status: 400 })
 
-  const document = createDocument({
+  const document = await createDocument({
     applicationId: application.id,
     name,
     description: body.description?.trim() ?? "",
