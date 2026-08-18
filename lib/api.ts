@@ -101,6 +101,9 @@ export const api = {
       folderId?: string | null
     },
   ) => send<{ document: VisaDocument }>(`/api/documents/${id}`, "PATCH", input),
+  /** Ticks a document off by hand — for the ones that only exist on paper. */
+  setDocumentComplete: (id: string, complete: boolean) =>
+    send<{ document: VisaDocument }>(`/api/documents/${id}`, "PATCH", { complete }),
   deleteDocument: (id: string) => send<{ ok: true }>(`/api/documents/${id}`, "DELETE"),
 
   uploadFile: async (documentId: string, files: File | File[]) => {

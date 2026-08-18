@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { deleteDocument, getApplication, getDocument, getFolder, updateDocument } from "@/lib/store"
+import {
+  deleteDocument,
+  getApplication,
+  getDocument,
+  getFolder,
+  setDocumentComplete,
+  updateDocument,
+} from "@/lib/store"
 import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
 
 async function loadOwnedDocument(documentId: string) {
@@ -24,6 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     category?: string | null
     folderId?: string | null
     deadline?: string | null
+    complete?: boolean
   }
   try {
     body = await request.json()
@@ -50,7 +58,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
-  const document = await updateDocument(id, patch)
+  let document = await updateDocument(id, patch)
+
+  // Ticking a document off by hand also derives its status, so it goes
+  // through the store rather than the free-form patch above.
+  if (typeof body.complete === "boolean") {
+    document = await setDocumentComplete(id, body.complete)
+  }
+
   return NextResponse.json({ document })
 }
 

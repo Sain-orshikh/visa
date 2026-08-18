@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { ExternalLink, File as FileIcon, FileImage, Loader2, Trash2, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { CloudUpload, ExternalLink, File as FileIcon, FileImage, Loader2, Trash2, X } from "lucide-react"
 import { api } from "@/lib/api"
 import type { VisaDocument, VisaFile } from "@/lib/types"
 
@@ -21,6 +21,9 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
   const [files, setFiles] = useState<VisaFile[]>(document.files)
   const [selectedId, setSelectedId] = useState<string | null>(document.files[0]?.id ?? null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -36,22 +39,38 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
   }, [document.files])
 
   async function handleDelete(fileId: string) {
+    setError(null)
     setBusyId(fileId)
     try {
       await api.deleteFile(document.id, fileId)
       setFiles((prev) => prev.filter((f) => f.id !== fileId))
       onChanged()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete the file.")
     } finally {
       setBusyId(null)
     }
   }
 
-  const selected = files.find((f) => f.id === selectedId) ?? null
-
-  if (files.length === 0) {
-    onClose()
-    return null
+  async function handleAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? [])
+    if (picked.length === 0) return
+    setError(null)
+    setUploading(true)
+    try {
+      const { document: updated } = await api.uploadFile(document.id, picked)
+      setFiles(updated.files)
+      setSelectedId((prev) => prev ?? updated.files[0]?.id ?? null)
+      onChanged()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
+
+  const selected = files.find((f) => f.id === selectedId) ?? null
 
   return (
     <div
@@ -74,15 +93,54 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
               {document.name}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-on-surface-variant hover:text-on-surface p-2 -mr-2 rounded-lg hover:bg-surface-container transition-colors shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-3 py-2 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-semibold hover:border-primary hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60"
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
+              {uploading ? "Uploading…" : "Add files"}
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="text-on-surface-variant hover:text-on-surface p-2 -mr-2 rounded-lg hover:bg-surface-container transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+            onChange={handleAdd}
+            className="hidden"
+          />
         </div>
 
+        {error && (
+          <p className="px-gutter py-2 text-xs text-on-error-container bg-error-container shrink-0" role="alert">
+            {error}
+          </p>
+        )}
+
+        {files.length === 0 ? (
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 px-gutter text-center">
+            <p className="text-sm text-on-surface-variant">
+              No files on record. Add one, or close and tick the document off if you only hold a paper copy.
+            </p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors disabled:opacity-60"
+            >
+              <CloudUpload className="w-4 h-4" />
+              Upload files
+            </button>
+          </div>
+        ) : (
         <div className="flex flex-1 min-h-0">
           {/* File picker */}
           <div className="w-56 shrink-0 border-r border-outline-variant overflow-y-auto py-2">
@@ -155,6 +213,7 @@ export function FileViewerModal({ document, onClose, onChanged }: FileViewerModa
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   )

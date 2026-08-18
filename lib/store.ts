@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto"
 import { getDb } from "./mongodb"
 import type {
+  DocumentStatus,
   SupportCategory,
   SupportTicket,
   User,
@@ -276,7 +277,8 @@ export async function deleteFolder(id: string): Promise<boolean> {
  */
 function normalizeDocument(raw: VisaDocument): VisaDocument {
   const folderId = raw.folderId ?? null
-  if (Array.isArray(raw.files)) return { ...raw, folderId }
+  const manualComplete = raw.manualComplete ?? false
+  if (Array.isArray(raw.files)) return { ...raw, folderId, manualComplete }
   const legacy = raw as unknown as {
     fileUrl?: string | null
     filePublicId?: string | null
@@ -296,7 +298,15 @@ function normalizeDocument(raw: VisaDocument): VisaDocument {
         },
       ]
     : []
-  return { ...raw, folderId, files }
+  return { ...raw, folderId, manualComplete, files }
+}
+
+/**
+ * A document counts as complete once it has a file on record, or when the user
+ * ticked it off by hand because the only copy they hold is a physical one.
+ */
+function statusOf(files: VisaFile[], manualComplete: boolean): DocumentStatus {
+  return files.length > 0 || manualComplete ? "uploaded" : "pending"
 }
 
 export async function listDocuments(applicationId: string): Promise<VisaDocument[]> {
@@ -326,6 +336,7 @@ export async function createDocument(input: {
     folderId: input.folderId ?? null,
     deadline: input.deadline ?? null,
     status: "pending",
+    manualComplete: false,
     files: [],
     createdAt: new Date().toISOString(),
   }
@@ -358,14 +369,35 @@ export async function addDocumentFiles(id: string, files: VisaFile[]): Promise<V
   return result ? normalizeDocument(result) : undefined
 }
 
-/** Removes one file from a document, reverting to "pending" if none remain. */
+/**
+ * Removes one file from a document. It reverts to "pending" once nothing is
+ * left — unless the user had also ticked it off by hand.
+ */
 export async function removeDocumentFile(id: string, fileId: string): Promise<VisaDocument | undefined> {
   const document = await getDocument(id)
   if (!document) return undefined
   const files = document.files.filter((f) => f.id !== fileId)
   const result = await (await documents()).findOneAndUpdate(
     { id },
-    { $set: { files, status: files.length > 0 ? "uploaded" : "pending" } },
+    { $set: { files, status: statusOf(files, document.manualComplete) } },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )
+  return result ? normalizeDocument(result) : undefined
+}
+
+/**
+ * Ticks a document off (or back on) by hand. Files still count on their own,
+ * so un-ticking a document that has files on record leaves it complete.
+ */
+export async function setDocumentComplete(
+  id: string,
+  complete: boolean,
+): Promise<VisaDocument | undefined> {
+  const document = await getDocument(id)
+  if (!document) return undefined
+  const result = await (await documents()).findOneAndUpdate(
+    { id },
+    { $set: { manualComplete: complete, status: statusOf(document.files, complete) } },
     { returnDocument: "after", projection: { _id: 0 } },
   )
   return result ? normalizeDocument(result) : undefined

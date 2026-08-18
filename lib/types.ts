@@ -63,6 +63,11 @@ export interface VisaDocument {
   folderId: string | null
   deadline: string | null
   status: DocumentStatus
+  /**
+   * Ticked by hand for documents that only exist on paper. It keeps the
+   * document complete on its own, and survives files being added or removed.
+   */
+  manualComplete: boolean
   files: VisaFile[]
   createdAt: string
 }

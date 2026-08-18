@@ -256,6 +256,20 @@ function OutstandingRow({ document: doc, actions, onChanged }: DocumentRowProps)
     }
   }
 
+  /** For documents held on paper only — no file to upload, but still done. */
+  async function handleComplete() {
+    setError(null)
+    setBusy(true)
+    try {
+      await api.setDocumentComplete(doc.id, true)
+      onChanged()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the document.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div
       draggable
@@ -272,7 +286,15 @@ function OutstandingRow({ document: doc, actions, onChanged }: DocumentRowProps)
           aria-hidden="true"
           className="w-4 h-4 mt-1 text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity cursor-grab shrink-0"
         />
-        <Circle />
+        <button
+          onClick={handleComplete}
+          disabled={busy}
+          title="Mark as complete"
+          aria-label={`Mark ${doc.name} as complete`}
+          className="mt-0.5 w-5 h-5 rounded-full border-2 border-outline shrink-0 flex items-center justify-center text-transparent hover:border-success hover:text-success transition-colors disabled:opacity-50"
+        >
+          <Check className="w-3 h-3" strokeWidth={3} />
+        </button>
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold text-on-surface leading-snug">{doc.name}</h3>
           {doc.description && (
@@ -318,6 +340,15 @@ function OutstandingRow({ document: doc, actions, onChanged }: DocumentRowProps)
 
       <div className="flex items-center justify-end gap-1 shrink-0">
         <button
+          onClick={handleComplete}
+          disabled={busy}
+          title="I have this one — no file to upload"
+          className="px-3 py-2 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-semibold flex items-center gap-2 hover:border-success hover:text-success transition-colors disabled:opacity-60"
+        >
+          <Check className="w-4 h-4" />
+          Mark done
+        </button>
+        <button
           onClick={() => fileInputRef.current?.click()}
           disabled={busy}
           className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors disabled:opacity-60"
@@ -339,16 +370,13 @@ function OutstandingRow({ document: doc, actions, onChanged }: DocumentRowProps)
   )
 }
 
-/** Empty ring, drawn to match the filled check on the on-file rows. */
-function Circle() {
-  return <span aria-hidden="true" className="mt-0.5 w-5 h-5 rounded-full border-2 border-outline shrink-0" />
-}
-
 /** Completed work is dense and quiet — it shouldn't compete with what's left. */
 function OnFileRow({ document: doc, actions, onChanged }: DocumentRowProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
 
+  const hasFiles = doc.files.length > 0
   const latestUpload = doc.files.reduce<string | null>(
     (latest, f) => (!latest || f.uploadedAt > latest ? f.uploadedAt : latest),
     null,
@@ -361,6 +389,30 @@ function OnFileRow({ document: doc, actions, onChanged }: DocumentRowProps) {
       onChanged()
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** Un-ticks a document that was only ever marked done by hand. */
+  async function handleUncomplete() {
+    setBusy(true)
+    try {
+      await api.setDocumentComplete(doc.id, false)
+      onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    setBusy(true)
+    try {
+      await api.uploadFile(doc.id, files)
+      onChanged()
+    } finally {
+      setBusy(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
@@ -380,11 +432,33 @@ function OnFileRow({ document: doc, actions, onChanged }: DocumentRowProps) {
           aria-hidden="true"
           className="w-4 h-4 text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity cursor-grab shrink-0"
         />
-        <CircleCheck className="w-5 h-5 text-success shrink-0" />
+        {/*
+         * With files on record the tick is a statement of fact — the way back
+         * is to delete them. Ticked off by hand, it's the user's own call, so
+         * it stays clickable.
+         */}
+        {hasFiles ? (
+          <CircleCheck className="w-5 h-5 text-success shrink-0" />
+        ) : (
+          <button
+            onClick={handleUncomplete}
+            disabled={busy}
+            title="Mark as not complete"
+            aria-label={`Mark ${doc.name} as not complete`}
+            className="shrink-0 text-success hover:text-on-surface-variant transition-colors disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <CircleCheck className="w-5 h-5" />}
+          </button>
+        )}
         <span className="text-sm text-on-surface truncate flex-1 min-w-0">{doc.name}</span>
         {doc.files.length > 1 && (
           <span className="font-mono text-[11px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">
             {doc.files.length} files
+          </span>
+        )}
+        {!hasFiles && (
+          <span className="font-mono text-[11px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded whitespace-nowrap">
+            No file
           </span>
         )}
         {latestUpload && (
@@ -392,14 +466,33 @@ function OnFileRow({ document: doc, actions, onChanged }: DocumentRowProps) {
             {new Date(latestUpload).toLocaleDateString(undefined, { day: "2-digit", month: "short" })}
           </span>
         )}
-        <button
-          onClick={() => setViewerOpen(true)}
-          className="px-2.5 py-1.5 text-primary text-xs font-semibold hover:bg-surface-container rounded-md transition-colors flex items-center gap-1.5"
-        >
-          <Eye className="w-4 h-4" />
-          <span className="hidden sm:inline">View</span>
-        </button>
+        {hasFiles ? (
+          <button
+            onClick={() => setViewerOpen(true)}
+            className="px-2.5 py-1.5 text-primary text-xs font-semibold hover:bg-surface-container rounded-md transition-colors flex items-center gap-1.5"
+          >
+            <Eye className="w-4 h-4" />
+            <span className="hidden sm:inline">View</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="px-2.5 py-1.5 text-primary text-xs font-semibold hover:bg-surface-container rounded-md transition-colors flex items-center gap-1.5 disabled:opacity-60"
+          >
+            <CloudUpload className="w-4 h-4" />
+            <span className="hidden sm:inline">Upload</span>
+          </button>
+        )}
         <RowMenu document={doc} actions={actions} onDelete={handleDelete} busy={busy} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+          onChange={handleFile}
+          className="hidden"
+        />
       </div>
       {viewerOpen && <FileViewerModal document={doc} onClose={() => setViewerOpen(false)} onChanged={onChanged} />}
     </>
