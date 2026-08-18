@@ -1,5 +1,7 @@
 import type {
   PublicUser,
+  StorageProvider,
+  StorageSettings,
   SupportCategory,
   SupportTicket,
   UserCategory,
@@ -53,6 +55,17 @@ export const api = {
     send<{ ok: true }>("/api/auth/password", "POST", input),
   deleteAccount: (input: { password: string }) =>
     send<{ ok: true }>("/api/auth/me", "DELETE", input),
+
+  getStorage: () => send<{ storage: StorageSettings }>("/api/storage", "GET"),
+  /** Switches provider, optionally saving the Cloudinary credentials with it. */
+  updateStorage: (input: {
+    provider: StorageProvider
+    cloudinary?: { cloudName: string; apiKey: string; apiSecret: string }
+  }) => send<{ storage: StorageSettings }>("/api/storage", "PUT", input),
+  disconnectStorage: (target: "cloudinary" | "google-drive") =>
+    send<{ storage: StorageSettings }>("/api/storage", "DELETE", { target }),
+  /** Returns the Google consent URL for the browser to navigate to. */
+  startGoogleDriveConnect: () => send<{ authUrl: string }>("/api/storage/google", "GET"),
 
   createSupportTicket: (input: { category: SupportCategory; subject: string; message: string }) =>
     send<{ ticket: SupportTicket }>("/api/support", "POST", input),

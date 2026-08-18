@@ -6,6 +6,7 @@ import type {
   SupportTicket,
   User,
   UserCategory,
+  UserStorage,
   VisaApplication,
   VisaDocument,
   VisaFile,
@@ -116,19 +117,50 @@ export async function deleteUserCategory(userId: string, categoryId: string): Pr
   return categories
 }
 
+/* ----------------------------- User storage ------------------------------- */
+
+/** Replaces the user's storage settings wholesale, or clears them. */
+export async function setUserStorage(
+  userId: string,
+  storage: UserStorage | null,
+): Promise<User | undefined> {
+  const update = storage ? { $set: { storage } } : { $unset: { storage: "" as const } }
+  const result = await (await users()).findOneAndUpdate({ id: userId }, update, {
+    returnDocument: "after",
+    projection: { _id: 0 },
+  })
+  return result ?? undefined
+}
+
+/* --------------------------- Cascading deletes ---------------------------- */
+
+/** Enough of a file to clean it up wherever it was uploaded. */
+export interface StoredFileRef {
+  publicId: string
+  provider: VisaFile["provider"]
+}
+
+function fileRefs(docs: VisaDocument[]): StoredFileRef[] {
+  return docs.flatMap((d) =>
+    normalizeDocument(d)
+      .files.filter((f) => f.publicId)
+      .map((f) => ({ publicId: f.publicId, provider: f.provider })),
+  )
+}
+
 /**
- * Removes the user and everything hanging off them. Returns the public ids of
- * any uploaded files so the caller can clear them from Cloudinary — the store
- * itself stays free of upload-provider concerns.
+ * Removes the user and everything hanging off them. Returns references to any
+ * uploaded files so the caller can clear them from wherever they live — the
+ * store itself stays free of upload-provider concerns.
  */
-export async function deleteUserCascade(id: string): Promise<{ filePublicIds: string[] }> {
+export async function deleteUserCascade(id: string): Promise<{ files: StoredFileRef[] }> {
   const ownedApps = await (await applications()).find({ userId: id }, NO_ID).toArray()
   const appIds = ownedApps.map((a) => a.id)
 
   const ownedDocs = appIds.length
     ? await (await documents()).find({ applicationId: { $in: appIds } }, NO_ID).toArray()
     : []
-  const filePublicIds = ownedDocs.flatMap((d) => normalizeDocument(d).files.map((f) => f.publicId))
+  const files = fileRefs(ownedDocs)
 
   if (appIds.length) {
     await (await documents()).deleteMany({ applicationId: { $in: appIds } })
@@ -138,7 +170,7 @@ export async function deleteUserCascade(id: string): Promise<{ filePublicIds: st
   await (await supportTickets()).deleteMany({ userId: id })
   await (await users()).deleteOne({ id })
 
-  return { filePublicIds }
+  return { files }
 }
 
 /* ------------------------------ Applications ------------------------------ */
@@ -203,27 +235,23 @@ export async function createApplication(input: {
 }
 
 /**
- * Deletes an application with its documents and folders. Returns the public
- * ids of any uploaded files so the caller can clear them from Cloudinary.
+ * Deletes an application with its documents and folders. Returns references to
+ * any uploaded files so the caller can clear them from their provider.
  */
 export async function deleteApplication(
   userId: string,
   id: string,
-): Promise<{ filePublicIds: string[] } | null> {
+): Promise<{ files: StoredFileRef[] } | null> {
   const app = await getApplication(userId, id)
   if (!app) return null
 
   const ownedDocs = await (await documents()).find({ applicationId: id }, NO_ID).toArray()
-  const filePublicIds = ownedDocs.flatMap((d) =>
-    normalizeDocument(d)
-      .files.map((f) => f.publicId)
-      .filter(Boolean),
-  )
+  const files = fileRefs(ownedDocs)
 
   await (await applications()).deleteOne({ id })
   await (await documents()).deleteMany({ applicationId: id })
   await (await folders()).deleteMany({ applicationId: id })
-  return { filePublicIds }
+  return { files }
 }
 
 /* --------------------------------- Folders -------------------------------- */

@@ -8,7 +8,7 @@ import {
   setDocumentComplete,
   updateDocument,
 } from "@/lib/store"
-import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
+import { removeStoredFiles } from "@/lib/storage"
 
 async function loadOwnedDocument(documentId: string) {
   const user = await getCurrentUser()
@@ -17,7 +17,7 @@ async function loadOwnedDocument(documentId: string) {
   if (!document) return { error: "Document not found", status: 404 as const }
   const application = await getApplication(user.id, document.applicationId)
   if (!application) return { error: "Document not found", status: 404 as const }
-  return { document }
+  return { document, user }
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -74,10 +74,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const result = await loadOwnedDocument(id)
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status })
 
-  const { document } = result
-  if (isCloudinaryConfigured()) {
-    await Promise.all(document.files.map((f) => deleteFromCloudinary(f.publicId)))
-  }
+  const { document, user } = result
+  await removeStoredFiles(user, document.files)
 
   await deleteDocument(id)
   return NextResponse.json({ ok: true })

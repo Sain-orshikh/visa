@@ -6,7 +6,7 @@ import {
   verifyPassword,
 } from "@/lib/auth"
 import { deleteUserCascade, findUserByEmail, updateUser } from "@/lib/store"
-import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
+import { removeStoredFiles } from "@/lib/storage"
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -79,10 +79,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "That password is incorrect." }, { status: 403 })
   }
 
-  const { filePublicIds } = await deleteUserCascade(user.id)
-  if (isCloudinaryConfigured() && filePublicIds.length) {
-    await Promise.all(filePublicIds.map((publicId) => deleteFromCloudinary(publicId)))
-  }
+  const { files } = await deleteUserCascade(user.id)
+  if (files.length) await removeStoredFiles(user, files)
   await destroySession()
 
   return NextResponse.json({ ok: true })

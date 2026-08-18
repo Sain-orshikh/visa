@@ -1,14 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import {
   Archive,
   ArchiveRestore,
   Check,
+  Cloud,
+  HardDrive,
   Loader2,
+  Lock,
   Plus,
+  Server,
   Tag,
   Trash2,
   TriangleAlert,
@@ -18,7 +22,7 @@ import { PageShell, SectionCard } from "@/components/page-shell"
 import { ThemeSegmentedControl } from "@/components/theme-toggle"
 import { api, fetcher, type ApplicationSummary } from "@/lib/api"
 import { BUILT_IN_CATEGORIES } from "@/lib/categories"
-import type { PublicUser, UserCategory } from "@/lib/types"
+import type { PublicUser, StorageProvider, StorageSettings, UserCategory } from "@/lib/types"
 
 const FIELD =
   "w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
@@ -63,6 +67,7 @@ export function SettingsClient({ user }: { user: PublicUser }) {
       description="Manage your profile, how the app looks, and your sign-in details."
     >
       <ProfileSection user={user} />
+      <StorageSection />
       <CategoriesSection />
       <ApplicationsSection />
       <AppearanceSection />
@@ -174,6 +179,316 @@ function CategoriesSection() {
 
         <Feedback error={error} />
       </div>
+    </SectionCard>
+  )
+}
+
+/* ---------------------------------------------------------------- storage */
+
+const PROVIDER_COPY: Record<StorageProvider, { label: string; blurb: string; Icon: typeof Cloud }> = {
+  app: {
+    label: "Visa Tracker storage",
+    blurb: "Files are uploaded to this app's own storage. Nothing to set up.",
+    Icon: Server,
+  },
+  cloudinary: {
+    label: "Your own Cloudinary",
+    blurb: "Uploads go straight to your Cloudinary account. We only keep the link.",
+    Icon: Cloud,
+  },
+  "google-drive": {
+    label: "Your own Google Drive",
+    blurb: "Files land in a Visa Tracker folder in your Drive, private to your account.",
+    Icon: HardDrive,
+  },
+}
+
+const PROVIDER_ORDER: StorageProvider[] = ["app", "cloudinary", "google-drive"]
+
+/**
+ * Storage is the one setting with a privacy consequence, so the choice is laid
+ * out in full rather than hidden behind a dropdown. Whichever provider is
+ * selected is where new uploads go; files already uploaded stay put.
+ */
+function StorageSection() {
+  const { data, mutate, isLoading } = useSWR<{ storage: StorageSettings }>("/api/storage", fetcher)
+  const storage = data?.storage
+
+  const [pending, setPending] = useState<StorageProvider | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const [cloudName, setCloudName] = useState("")
+  const [apiKey, setApiKey] = useState("")
+  const [apiSecret, setApiSecret] = useState("")
+
+  // The Google flow comes back through a redirect, so its result arrives as a
+  // query string rather than a fetch response.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const connected = params.get("storage_connected")
+    const failed = params.get("storage_error")
+    if (!connected && !failed) return
+    if (connected) setSuccess("Google Drive connected. New uploads go to your Drive.")
+    if (failed) setError(failed)
+    params.delete("storage_connected")
+    params.delete("storage_error")
+    const query = params.toString()
+    window.history.replaceState({}, "", window.location.pathname + (query ? "?" + query : ""))
+  }, [])
+
+  const selected = pending ?? storage?.provider ?? "app"
+  const dirty = pending !== null && pending !== storage?.provider
+  const hasCloudinaryInput = Boolean(cloudName || apiKey || apiSecret)
+
+  function reset() {
+    setError(null)
+    setSuccess(null)
+  }
+
+  async function handleSave() {
+    reset()
+    setBusy(true)
+    try {
+      const input: Parameters<typeof api.updateStorage>[0] = { provider: selected }
+      if (selected === "cloudinary" && hasCloudinaryInput) {
+        input.cloudinary = {
+          cloudName: cloudName.trim(),
+          apiKey: apiKey.trim(),
+          apiSecret: apiSecret.trim(),
+        }
+      }
+      const result = await api.updateStorage(input)
+      mutate({ storage: result.storage }, { revalidate: false })
+      setPending(null)
+      setCloudName("")
+      setApiKey("")
+      setApiSecret("")
+      setSuccess(`New uploads now go to ${PROVIDER_COPY[result.storage.provider].label}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update storage.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleConnectGoogle() {
+    reset()
+    setBusy(true)
+    try {
+      const { authUrl } = await api.startGoogleDriveConnect()
+      window.location.href = authUrl
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start the Google connection.")
+      setBusy(false)
+    }
+  }
+
+  async function handleDisconnect(target: "cloudinary" | "google-drive") {
+    reset()
+    setBusy(true)
+    try {
+      const result = await api.disconnectStorage(target)
+      mutate({ storage: result.storage }, { revalidate: false })
+      setPending(null)
+      setSuccess(`Disconnected. New uploads go to ${PROVIDER_COPY[result.storage.provider].label}.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not disconnect.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function available(provider: StorageProvider) {
+    if (!storage) return false
+    if (provider === "app") return storage.appStorageAvailable
+    if (provider === "google-drive") return storage.googleDriveAvailable
+    return true
+  }
+
+  return (
+    <SectionCard
+      title="File storage"
+      description="Choose where your uploaded documents are kept. Point this at your own cloud and your files never sit on our storage at all."
+    >
+      {isLoading || !storage ? (
+        <p className="text-sm text-on-surface-variant flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading&hellip;
+        </p>
+      ) : (
+        <div className="flex flex-col gap-stack-md">
+          <div className="flex flex-col gap-2">
+            {PROVIDER_ORDER.map((provider) => {
+              const { label, blurb, Icon } = PROVIDER_COPY[provider]
+              const active = selected === provider
+              const current = storage.provider === provider
+              const enabled = available(provider)
+
+              return (
+                <label
+                  key={provider}
+                  className={`flex items-start gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                    active
+                      ? "border-primary bg-selected"
+                      : "border-outline-variant bg-surface-container-low hover:border-primary/50"
+                  } ${enabled ? "cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                >
+                  <input
+                    type="radio"
+                    name="storage-provider"
+                    value={provider}
+                    checked={active}
+                    disabled={!enabled || busy}
+                    onChange={() => {
+                      reset()
+                      setPending(provider)
+                    }}
+                    className="mt-1 accent-primary"
+                  />
+                  <Icon
+                    className={`w-4 h-4 mt-0.5 shrink-0 ${active ? "text-primary" : "text-on-surface-variant"}`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-on-surface">{label}</span>
+                      {current && (
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                          in use
+                        </span>
+                      )}
+                      {!enabled && (
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">
+                          unavailable
+                        </span>
+                      )}
+                    </span>
+                    <span className="block text-xs text-on-surface-variant mt-0.5">{blurb}</span>
+
+                    {provider === "cloudinary" && storage.cloudinary && (
+                      <span className="block font-mono text-[11px] text-on-surface-variant mt-1">
+                        {storage.cloudinary.cloudName} &middot; key {storage.cloudinary.apiKey}
+                      </span>
+                    )}
+                    {provider === "google-drive" && storage.googleDrive && (
+                      <span className="block font-mono text-[11px] text-on-surface-variant mt-1">
+                        {storage.googleDrive.accountEmail ?? "connected"}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+
+          {selected === "cloudinary" && (
+            <div className="flex flex-col gap-stack-sm rounded-lg border border-outline-variant p-4">
+              <p className="text-sm font-semibold text-on-surface">Cloudinary credentials</p>
+              <p className="text-xs text-on-surface-variant">
+                Take these from your Cloudinary dashboard. The API secret is encrypted before it is
+                stored, and is never sent back to the browser.
+              </p>
+              <input
+                type="text"
+                value={cloudName}
+                onChange={(e) => setCloudName(e.target.value)}
+                placeholder={storage.cloudinary ? `Cloud name (${storage.cloudinary.cloudName})` : "Cloud name"}
+                autoComplete="off"
+                className={FIELD}
+              />
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={storage.cloudinary ? `API key (${storage.cloudinary.apiKey})` : "API key"}
+                autoComplete="off"
+                className={FIELD}
+              />
+              <input
+                type="password"
+                value={apiSecret}
+                onChange={(e) => setApiSecret(e.target.value)}
+                placeholder={storage.cloudinary ? "API secret (saved — leave blank to keep)" : "API secret"}
+                autoComplete="new-password"
+                className={FIELD}
+              />
+              {storage.cloudinary && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => handleDisconnect("cloudinary")}
+                    disabled={busy}
+                    className="text-xs font-semibold text-error hover:underline disabled:opacity-60"
+                  >
+                    Forget these credentials
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selected === "google-drive" && storage.googleDriveAvailable && (
+            <div className="flex flex-col gap-stack-sm rounded-lg border border-outline-variant p-4">
+              <p className="text-sm font-semibold text-on-surface">Google account</p>
+              <p className="text-xs text-on-surface-variant">
+                We ask only for permission to manage files this app creates &mdash; the rest of your
+                Drive stays out of reach.
+              </p>
+              {storage.googleDrive ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-on-surface">
+                    Connected as {storage.googleDrive.accountEmail ?? "your Google account"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleConnectGoogle}
+                    disabled={busy}
+                    className="text-xs font-semibold text-primary hover:underline disabled:opacity-60"
+                  >
+                    Reconnect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDisconnect("google-drive")}
+                    disabled={busy}
+                    className="text-xs font-semibold text-error hover:underline disabled:opacity-60"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button type="button" onClick={handleConnectGoogle} disabled={busy} className={PRIMARY_BUTTON}>
+                    {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Connect Google Drive
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs text-on-surface-variant flex items-start gap-2">
+            <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            Switching only affects new uploads. Files you have already uploaded stay where they are,
+            and remain viewable for as long as that provider stays connected.
+          </p>
+
+          <Feedback error={error} success={success} />
+
+          <div>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={busy || (!dirty && !hasCloudinaryInput)}
+              className={PRIMARY_BUTTON}
+            >
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+              {busy ? "Saving…" : "Save storage settings"}
+            </button>
+          </div>
+        </div>
+      )}
     </SectionCard>
   )
 }

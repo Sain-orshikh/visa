@@ -8,6 +8,48 @@ export interface UserCategory {
   label: string
 }
 
+/* -------------------------------- Storage --------------------------------- */
+
+/**
+ * Where a user's uploaded files live. "app" is the shared storage this
+ * deployment provides; the others are the user's own account, so their
+ * documents never touch our storage at all.
+ */
+export type StorageProvider = "app" | "cloudinary" | "google-drive"
+
+export interface CloudinaryCredentials {
+  cloudName: string
+  apiKey: string
+  /** Encrypted at rest — see lib/secrets.ts. */
+  apiSecret: string
+}
+
+export interface GoogleDriveCredentials {
+  /** Encrypted at rest — see lib/secrets.ts. */
+  refreshToken: string
+  /** The Drive folder we create and upload into. */
+  folderId: string | null
+  /** Shown in settings so the user knows which account is connected. */
+  accountEmail: string | null
+}
+
+export interface UserStorage {
+  provider: StorageProvider
+  cloudinary?: CloudinaryCredentials
+  googleDrive?: GoogleDriveCredentials
+}
+
+/** Storage state as the settings page sees it — never includes secrets. */
+export interface StorageSettings {
+  provider: StorageProvider
+  /** False when the deployment has no shared storage configured. */
+  appStorageAvailable: boolean
+  /** False when the deployment has no Google OAuth client configured. */
+  googleDriveAvailable: boolean
+  cloudinary: { cloudName: string; apiKey: string } | null
+  googleDrive: { accountEmail: string | null; folderId: string | null } | null
+}
+
 export interface User {
   id: string
   email: string
@@ -15,6 +57,8 @@ export interface User {
   passwordHash: string
   /** Absent on accounts created before custom categories existed. */
   categories?: UserCategory[]
+  /** Absent while the user is still on this deployment's shared storage. */
+  storage?: UserStorage
   createdAt: string
 }
 
@@ -46,8 +90,15 @@ export interface VisaFolder {
 
 export interface VisaFile {
   id: string
+  /**
+   * Where to load the file from. Cloudinary files carry their delivery URL;
+   * Google Drive files point at our own streaming route, since Drive uploads
+   * stay private to the user's account.
+   */
   url: string
   publicId: string
+  /** Absent on files uploaded before per-user storage existed — treat as "app". */
+  provider?: StorageProvider
   name: string
   format: string
   uploadedAt: string

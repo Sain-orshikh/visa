@@ -2,7 +2,7 @@ import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { addDocumentFiles, getApplication, getDocument } from "@/lib/store"
-import { isCloudinaryConfigured, uploadBuffer } from "@/lib/cloudinary"
+import { StorageNotConfiguredError, uploadBackend } from "@/lib/storage"
 import type { VisaFile } from "@/lib/types"
 
 // Vercel serverless functions hard-cap the request body at 4.5MB regardless
@@ -20,11 +20,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const application = await getApplication(user.id, document.applicationId)
   if (!application) return NextResponse.json({ error: "Document not found" }, { status: 404 })
 
-  if (!isCloudinaryConfigured()) {
-    return NextResponse.json(
-      { error: "File storage is not configured yet. Add your Cloudinary environment variables to enable uploads." },
-      { status: 503 },
-    )
+  // Whichever storage the user picked in Settings → Storage.
+  let backend
+  try {
+    backend = uploadBackend(user)
+  } catch (error) {
+    if (error instanceof StorageNotConfiguredError) {
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
+    throw error
   }
 
   let formData: FormData
@@ -51,12 +55,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const uploaded: VisaFile[] = []
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer())
-      const result = await uploadBuffer(buffer, file.name, `visa-tracker/${application.id}`)
+      const fileId = randomUUID()
+      const result = await backend.upload({ buffer, name: file.name, type: file.type }, application.id)
       uploaded.push({
-        id: randomUUID(),
-        url: result.url,
+        id: fileId,
+        // Providers that keep files private hand back no public URL, so those
+        // are read through our own streaming route instead.
+        url: result.url ?? `/api/documents/${id}/files/${fileId}/content`,
         publicId: result.publicId,
-        name: result.originalFilename,
+        provider: backend.provider,
+        name: file.name,
         format: result.format,
         uploadedAt: new Date().toISOString(),
       })
@@ -71,7 +79,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         : typeof error === "string"
           ? error
           : ((error as { message?: string } | undefined)?.message ?? JSON.stringify(error))
-    console.log("[v0] Cloudinary upload failed:", message)
+    console.log("[storage] upload failed:", message)
     return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 })
   }
 }

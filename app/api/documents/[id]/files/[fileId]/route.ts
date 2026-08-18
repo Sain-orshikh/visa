@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { getApplication, getDocument, removeDocumentFile } from "@/lib/store"
-import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
+import { backendForFile } from "@/lib/storage"
 
 export async function DELETE(
   _request: Request,
@@ -19,8 +19,13 @@ export async function DELETE(
   const file = document.files.find((f) => f.id === fileId)
   if (!file) return NextResponse.json({ error: "File not found" }, { status: 404 })
 
-  if (file.publicId && isCloudinaryConfigured()) {
-    await deleteFromCloudinary(file.publicId)
+  if (file.publicId) {
+    try {
+      await backendForFile(user, file).remove(file.publicId)
+    } catch {
+      // A provider the user has since disconnected can no longer be cleaned
+      // up — that must not stop them removing the file from their checklist.
+    }
   }
 
   const updated = await removeDocumentFile(id, fileId)

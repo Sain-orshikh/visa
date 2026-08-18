@@ -7,7 +7,7 @@ import {
   listFolders,
   setApplicationArchived,
 } from "@/lib/store"
-import { deleteFromCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary"
+import { removeStoredFiles } from "@/lib/storage"
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
@@ -62,9 +62,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const result = await deleteApplication(user.id, id)
   if (!result) return NextResponse.json({ error: "Application not found" }, { status: 404 })
 
-  if (isCloudinaryConfigured() && result.filePublicIds.length) {
-    await Promise.all(result.filePublicIds.map((publicId) => deleteFromCloudinary(publicId)))
-  }
+  if (result.files.length) await removeStoredFiles(user, result.files)
 
   return NextResponse.json({ ok: true })
 }
