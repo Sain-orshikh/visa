@@ -231,7 +231,7 @@ export function NewVisaWizard() {
                           className={`h-full border rounded-lg p-stack-md flex flex-col items-center text-center gap-stack-sm transition-colors ${
                             active
                               ? "border-primary bg-selected ring-1 ring-primary"
-                              : "border-outline-variant hover:bg-surface-container-low"
+                              : "border-outline-variant hover:bg-surface-container"
                           }`}
                         >
                           <Icon className={`w-7 h-7 ${active ? "text-primary" : "text-on-surface-variant"}`} />
@@ -323,7 +323,7 @@ export function NewVisaWizard() {
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-colors ${
                         active
                           ? "border-primary bg-selected"
-                          : "border-outline-variant hover:bg-surface-container-low"
+                          : "border-outline-variant hover:bg-surface-container"
                       }`}
                     >
                       <span

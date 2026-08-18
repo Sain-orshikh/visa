@@ -22,7 +22,7 @@ export function ThemeToggleButton({ className = "" }: { className?: string }) {
       onClick={() => setTheme(next)}
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left ${className}`}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors text-left ${className}`}
     >
       {resolved === "dark" ? (
         <Sun className="w-[18px] h-[18px] flex-shrink-0" />

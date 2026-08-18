@@ -322,7 +322,7 @@ function DangerSection() {
                 setPassword("")
                 setError(null)
               }}
-              className="px-5 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant text-sm font-semibold hover:bg-surface-container-low transition-colors"
+              className="px-5 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant text-sm font-semibold hover:bg-surface-container transition-colors"
             >
               Cancel
             </button>

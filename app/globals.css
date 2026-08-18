@@ -279,6 +279,25 @@
   .font-display {
     letter-spacing: -0.022em;
   }
+  /* Every clickable control gets a pointer and a consistent hover animation
+     by default. Components that need a different timing (e.g. the 500ms
+     progress bar fill) set their own transition utility, which wins because
+     Tailwind's utility layer is ordered after this base layer. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+  button,
+  a,
+  [role='button'] {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
 }
 
 @layer components {

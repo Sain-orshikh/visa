@@ -75,7 +75,7 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
               className={`flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-lg text-left border-l-[3px] transition-colors ${
                 active
                   ? "border-l-primary bg-selected text-primary font-semibold"
-                  : "border-l-transparent text-on-surface-variant hover:bg-surface-container-low"
+                  : "border-l-transparent text-on-surface-variant hover:bg-surface-container"
               }`}
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" />
@@ -113,7 +113,7 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
         <Link
           href="/settings"
           onClick={() => onClose?.()}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors text-left"
         >
           <Settings className="w-[18px] h-[18px]" />
           <span className="text-sm">Settings</span>
@@ -121,7 +121,7 @@ export function Sidebar({ user, applications, activeId, onSelect, onClose }: Sid
         <Link
           href="/support"
           onClick={() => onClose?.()}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors text-left"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors text-left"
         >
           <HelpCircle className="w-[18px] h-[18px]" />
           <span className="text-sm">Support</span>

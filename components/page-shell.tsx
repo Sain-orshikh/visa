@@ -29,7 +29,7 @@ export function PageShell({ title, eyebrow, description, children }: PageShellPr
             </Link>
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container-low transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back to dashboard</span>
